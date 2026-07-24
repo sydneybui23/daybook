@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { Send, Reply, X, Heart, MessageCircle } from 'lucide-react'
 import { useStore, type Comment } from '../lib/store'
 import { Avatar } from '../lib/avatars'
-import { photoForIcon } from '../lib/localPhotos'
+import { paletteColorForSeed } from '../lib/palette'
 import { FullEntryOverlay } from './FullEntryOverlay'
 import { ReportButton } from './ReportButton'
 import type { PostEntry } from './PostCard'
@@ -137,11 +137,14 @@ export function CircleChat({ circle }: { circle: Circle }) {
                     <p className="text-[11px] text-[var(--ink-soft)]">{timeLabel(e.date)}</p>
                   </div>
                   <button onClick={() => openFull(e)} className="block w-full text-left">
-                    <img
-                      src={e.photo || photoForIcon(e.iconId, e.id)}
-                      alt=""
-                      className="mb-2.5 aspect-[4/3] w-full rounded-xl object-cover"
-                    />
+                    {e.photo ? (
+                      <img src={e.photo} alt="" className="mb-2.5 aspect-[4/3] w-full rounded-xl object-cover" />
+                    ) : (
+                      <div
+                        className="mb-2.5 aspect-[4/3] w-full rounded-xl"
+                        style={{ background: paletteColorForSeed(e.id) }}
+                      />
+                    )}
                     <p
                       className="text-[14.5px] leading-relaxed text-[var(--ink)]"
                       style={{ fontFamily: 'var(--font-serif)', fontWeight: 300 }}

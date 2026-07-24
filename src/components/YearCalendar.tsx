@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { photoForIcon } from '../lib/localPhotos'
+import { paletteColorForSeed } from '../lib/palette'
 import type { Entry } from '../lib/types'
 
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
@@ -47,11 +47,11 @@ export function YearCalendar({ entries, onOpen }: { entries: Entry[]; onOpen: (e
                       className="relative flex aspect-square items-center justify-center overflow-hidden rounded-xl border border-[var(--line)] disabled:cursor-default"
                     >
                       {entry ? (
-                        <img
-                          src={entry.photo || photoForIcon(entry.iconId, entry.id)}
-                          alt=""
-                          className="absolute inset-0 h-full w-full object-cover"
-                        />
+                        entry.photo ? (
+                          <img src={entry.photo} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                        ) : (
+                          <div className="absolute inset-0" style={{ background: paletteColorForSeed(entry.id) }} />
+                        )
                       ) : (
                         <span className="text-[13px] text-[var(--ink-soft)]/50">{day}</span>
                       )}

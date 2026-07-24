@@ -1,4 +1,4 @@
-import { photoForIcon } from '../lib/localPhotos'
+import { paletteColorForSeed } from '../lib/palette'
 import type { IconId } from '../lib/types'
 
 export function EntryPhoto({
@@ -21,7 +21,11 @@ export function EntryPhoto({
       className={`flex shrink-0 items-center justify-center overflow-hidden ${className ?? ''}`}
       style={{ width: size, height: size, borderRadius: radius }}
     >
-      <img src={photo || photoForIcon(iconId, seed)} alt="" className="h-full w-full object-cover" />
+      {photo ? (
+        <img src={photo} alt="" className="h-full w-full object-cover" />
+      ) : (
+        <div className="h-full w-full" style={{ background: paletteColorForSeed(seed ?? iconId) }} />
+      )}
     </div>
   )
 }

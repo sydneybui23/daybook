@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Heart, MessageCircle, Repeat2, Send } from 'lucide-react'
-import { photoForIcon } from '../lib/localPhotos'
+import { paletteColorForSeed } from '../lib/palette'
 import { Avatar } from '../lib/avatars'
 import type { IconId } from '../lib/types'
 
@@ -29,7 +29,11 @@ export function PostCard({ entry, onOpen }: { entry: PostEntry; onOpen: (entry: 
         onClick={() => onOpen(entry)}
         className="relative aspect-square w-full overflow-hidden rounded-2xl shadow-[0_1px_3px_rgba(0,0,0,0.1)]"
       >
-        <img src={entry.photo || photoForIcon(entry.iconId, entry.id)} alt="" className="absolute inset-0 h-full w-full object-cover" />
+        {entry.photo ? (
+          <img src={entry.photo} alt="" className="absolute inset-0 h-full w-full object-cover" />
+        ) : (
+          <div className="absolute inset-0" style={{ background: paletteColorForSeed(entry.id) }} />
+        )}
       </button>
 
       <Link to={`/people/${encodeURIComponent(entry.name)}`} className="flex items-center gap-2.5 px-1 pt-3">

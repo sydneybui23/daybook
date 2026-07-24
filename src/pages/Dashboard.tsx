@@ -4,7 +4,6 @@ import { ArrowRight, BookOpen, Camera, ChevronLeft, ChevronRight, Flame, ListChe
 import { NewEntryModal } from '../components/NewEntryModal'
 import { useStore } from '../lib/store'
 import { EntryPhoto } from '../components/EntryPhoto'
-import { photoForIcon } from '../lib/localPhotos'
 import { Avatar } from '../lib/avatars'
 import { YearWall } from '../components/YearWall'
 import { DailyEnvelope } from '../components/DailyEnvelope'
@@ -13,7 +12,7 @@ import { toPostEntry } from '../lib/entryHelpers'
 import { useDailyInspiration } from '../lib/useDailyInspiration'
 import { pickIcon } from '../lib/pickIcon'
 import { getTodayEnvelope } from '../lib/envelopeContent'
-import { paletteHex } from '../lib/palette'
+import { paletteHex, paletteColorForSeed } from '../lib/palette'
 import type { Entry, EntryMode } from '../lib/types'
 import type { PostEntry } from '../components/PostCard'
 
@@ -433,11 +432,14 @@ export function Dashboard() {
                 }
                 className="block w-full"
               >
-                <img
-                  src={highlight.entry.photo || photoForIcon(highlight.entry.iconId, highlight.entry.id)}
-                  alt=""
-                  className="aspect-square w-full rounded-2xl object-cover"
-                />
+                {highlight.entry.photo ? (
+                  <img src={highlight.entry.photo} alt="" className="aspect-square w-full rounded-2xl object-cover" />
+                ) : (
+                  <div
+                    className="aspect-square w-full rounded-2xl"
+                    style={{ background: paletteColorForSeed(highlight.entry.id) }}
+                  />
+                )}
               </button>
               <div className="mt-3 flex items-center gap-2.5">
                 <Avatar name={highlight.memberName} color={highlight.memberColor} size={30} />

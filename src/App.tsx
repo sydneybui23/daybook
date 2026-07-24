@@ -27,7 +27,7 @@ function AppShell() {
   return (
     <BrowserRouter>
       <Header />
-      <div className="lg:pl-60">
+      <div className="lg:pl-60 lg:pt-[170px]">
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/archive" element={<Archive />} />

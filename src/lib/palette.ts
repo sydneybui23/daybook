@@ -37,3 +37,15 @@ export function paletteGradient(id: string, angle = 160) {
 export function paletteIdAt(index: number) {
   return PALETTE[index % PALETTE.length].id
 }
+
+function hashStr(s: string) {
+  let h = 0
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0
+  return h
+}
+
+// A flat, deterministic palette color to stand in for a photo the user hasn't
+// uploaded yet — no stock photos, no gradients, just one of the 12 brand colors.
+export function paletteColorForSeed(seed: string) {
+  return PALETTE[hashStr(seed) % PALETTE.length].hex
+}

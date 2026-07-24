@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Mail, Phone, Camera, ArrowLeft } from 'lucide-react'
+import { Mail, Phone, Camera, ArrowLeft, Trash2 } from 'lucide-react'
 import { useStore } from '../lib/store'
 import { TEMPLATE_QUESTIONS } from '../lib/data'
 import { DAYBOOK_LOGO } from '../lib/localPhotos'
@@ -22,11 +22,30 @@ export function Onboarding() {
   const [bio, setBio] = useState('')
   const [photo, setPhoto] = useState<string | undefined>(undefined)
   const [questions, setQuestions] = useState<TemplateQuestion[]>(TEMPLATE_QUESTIONS)
+  const [selectedQuestions, setSelectedQuestions] = useState<Set<string>>(new Set(TEMPLATE_QUESTIONS.map((q) => q.id)))
 
   const onPhotoFile = (file: File) => {
     const reader = new FileReader()
     reader.onload = () => setPhoto(reader.result as string)
     reader.readAsDataURL(file)
+  }
+
+  const toggleQuestionSelected = (id: string) => {
+    setSelectedQuestions((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const removeQuestion = (id: string) => {
+    setQuestions((prev) => prev.filter((q) => q.id !== id))
+    setSelectedQuestions((prev) => {
+      const next = new Set(prev)
+      next.delete(id)
+      return next
+    })
   }
 
   const finish = () => {
@@ -36,7 +55,7 @@ export function Onboarding() {
       photo,
       onboarded: true,
     })
-    updateTemplateQuestions(questions.filter((q) => q.label.trim().length > 0))
+    updateTemplateQuestions(questions.filter((q) => selectedQuestions.has(q.id) && q.label.trim().length > 0))
   }
 
   return (
@@ -220,22 +239,41 @@ export function Onboarding() {
             Your daily journaling questions
           </h1>
           <p className="text-center text-[13px] text-[var(--ink-soft)]">
-            Start with these, or make them your own. You can always change them later.
+            Check the ones you want to use, not all 7 required. Edit the wording, remove any, or add your own later.
           </p>
 
-          <div className="flex max-h-[320px] flex-col gap-2.5 overflow-y-auto pr-1">
+          <div className="flex max-h-[320px] flex-col gap-2 overflow-y-auto pr-1">
             {questions.map((q, i) => (
-              <input
-                key={q.id}
-                value={q.label}
-                onChange={(e) =>
-                  setQuestions((prev) => prev.map((p, idx) => (idx === i ? { ...p, label: e.target.value } : p)))
-                }
-                className="rounded-lg border border-[var(--line)] p-2.5 text-[13px] outline-none focus:border-[var(--accent)]"
-                style={{ fontFamily: 'var(--font-serif)' }}
-              />
+              <div key={q.id} className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={selectedQuestions.has(q.id)}
+                  onChange={() => toggleQuestionSelected(q.id)}
+                  className="h-4 w-4 shrink-0 accent-[var(--accent)]"
+                />
+                <input
+                  value={q.label}
+                  onChange={(e) =>
+                    setQuestions((prev) => prev.map((p, idx) => (idx === i ? { ...p, label: e.target.value } : p)))
+                  }
+                  disabled={!selectedQuestions.has(q.id)}
+                  className="w-full rounded-lg border border-[var(--line)] p-2.5 text-[13px] outline-none focus:border-[var(--accent)] disabled:opacity-40"
+                  style={{ fontFamily: 'var(--font-serif)' }}
+                />
+                <button
+                  onClick={() => removeQuestion(q.id)}
+                  aria-label="Remove question"
+                  className="shrink-0 text-[var(--ink-soft)] hover:text-[var(--accent)]"
+                >
+                  <Trash2 size={15} />
+                </button>
+              </div>
             ))}
           </div>
+
+          <p className="text-center text-[12px] text-[var(--ink-soft)]">
+            {selectedQuestions.size} of {questions.length} selected
+          </p>
 
           <button onClick={finish} className="rounded-full bg-[var(--ink)] py-3 text-[14px] text-white">
             Start journaling

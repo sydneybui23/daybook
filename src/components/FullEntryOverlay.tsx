@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { ArrowLeft, Camera, MoreVertical, Pencil } from 'lucide-react'
 import { useStore } from '../lib/store'
-import { photoForIcon } from '../lib/localPhotos'
+import { paletteColorForSeed } from '../lib/palette'
 import { Avatar } from '../lib/avatars'
 import { CommentThread } from './CommentThread'
 import type { PostEntry } from './PostCard'
@@ -90,11 +90,15 @@ export function FullEntryOverlay({
 
       <div className="mx-auto max-w-[480px] px-6 pb-24">
         <div className="relative aspect-square w-full overflow-hidden rounded-2xl">
-          <img
-            src={(editing ? draftPhoto : displayEntry.photo) || photoForIcon(displayEntry.iconId, displayEntry.id)}
-            alt=""
-            className="absolute inset-0 h-full w-full object-cover"
-          />
+          {(editing ? draftPhoto : displayEntry.photo) ? (
+            <img
+              src={editing ? draftPhoto : displayEntry.photo}
+              alt=""
+              className="absolute inset-0 h-full w-full object-cover"
+            />
+          ) : (
+            <div className="absolute inset-0" style={{ background: paletteColorForSeed(displayEntry.id) }} />
+          )}
           {editing && (
             <label className="absolute bottom-3 right-3 flex cursor-pointer items-center gap-1.5 rounded-full bg-black/60 px-3.5 py-2 text-[12.5px] text-white backdrop-blur">
               <Camera size={14} />
