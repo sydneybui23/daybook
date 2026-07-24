@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { Analytics } from '@vercel/analytics/react'
 import { AuthProvider, useAuth } from './lib/auth'
 import { StoreProvider, useStore } from './lib/store'
 import { Header } from './components/Header'
@@ -76,6 +77,7 @@ export default function App() {
   return (
     <AuthProvider>
       <AppInner />
+      <Analytics />
     </AuthProvider>
   )
 }
