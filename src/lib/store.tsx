@@ -64,6 +64,7 @@ interface StoreValue {
   entries: Entry[]
   addEntry: (e: Entry) => void
   updateEntry: (id: string, patch: Partial<Entry>) => void
+  deleteEntry: (id: string) => void
   circles: Circle[]
   addCircle: (c: Omit<Circle, 'memberUids' | 'members' | 'entries'>) => void
   joinCircle: (circleId: string) => Promise<void>
@@ -242,6 +243,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const updateEntry = (id: string, patch: Partial<Entry>) => {
     if (!uid || !db) return
     updateDoc(doc(db, 'users', uid, 'entries', id), patch)
+  }
+
+  const deleteEntry = (id: string) => {
+    if (!uid || !db) return
+    deleteDoc(doc(db, 'users', uid, 'entries', id))
   }
 
   const addCircle = (c: Omit<Circle, 'memberUids' | 'members' | 'entries'>) => {
@@ -439,6 +445,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       entries,
       addEntry,
       updateEntry,
+      deleteEntry,
       circles,
       addCircle,
       joinCircle,

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ArrowLeft, Camera, MoreVertical, Pencil } from 'lucide-react'
+import { ArrowLeft, Camera, MoreVertical, Pencil, Trash2, Share2 } from 'lucide-react'
 import { useStore } from '../lib/store'
 import { paletteColorForSeed } from '../lib/palette'
 import { fileToCompressedDataUrl } from '../lib/imageUtils'
@@ -20,9 +20,10 @@ export function FullEntryOverlay({
   onBack: () => void
   startInEdit?: boolean
 }) {
-  const { profile, entries, updateEntry } = useStore()
+  const { profile, entries, updateEntry, deleteEntry } = useStore()
   const [displayEntry, setDisplayEntry] = useState(entry)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [editing, setEditing] = useState(!!startInEdit)
   const [draftSummary, setDraftSummary] = useState(entry.summary)
   const [draftText, setDraftText] = useState(entry.fullText ?? entry.summary)
@@ -36,6 +37,35 @@ export function FullEntryOverlay({
     setDraftPhoto(displayEntry.photo)
     setEditing(true)
     setMenuOpen(false)
+  }
+
+  const handleDelete = () => {
+    if (!confirmingDelete) {
+      setConfirmingDelete(true)
+      return
+    }
+    deleteEntry(displayEntry.id)
+    setMenuOpen(false)
+    onBack()
+  }
+
+  const shareOutside = async () => {
+    setMenuOpen(false)
+    const text = `${displayEntry.fullText ?? displayEntry.summary}\n\n— written in daybook, ${fullDate(displayEntry.date)}`
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: 'A daybook entry', text })
+      } catch {
+        // user cancelled the share sheet, ignore
+      }
+      return
+    }
+    try {
+      await navigator.clipboard.writeText(text)
+      alert('Copied to your clipboard.')
+    } catch {
+      // clipboard unavailable, nothing more we can do
+    }
   }
 
   const onPhotoFile = async (file: File) => {
@@ -71,19 +101,35 @@ export function FullEntryOverlay({
         {canEdit && !editing && (
           <div className="relative">
             <button
-              onClick={() => setMenuOpen((v) => !v)}
+              onClick={() => {
+                setMenuOpen((v) => !v)
+                setConfirmingDelete(false)
+              }}
               aria-label="Entry options"
               className="text-[var(--ink-soft)] hover:text-[var(--ink)]"
             >
               <MoreVertical size={18} />
             </button>
             {menuOpen && (
-              <div className="absolute right-0 top-8 w-36 overflow-hidden rounded-xl bg-white py-1 shadow-[0_8px_24px_rgba(0,0,0,0.18)]">
+              <div className="absolute right-0 top-8 w-44 overflow-hidden rounded-xl bg-white py-1 shadow-[0_8px_24px_rgba(0,0,0,0.18)]">
                 <button
                   onClick={startEdit}
                   className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-[13.5px] text-[var(--ink)] hover:bg-[var(--line-soft)]"
                 >
                   <Pencil size={13} /> Edit
+                </button>
+                <button
+                  onClick={shareOutside}
+                  className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-[13.5px] text-[var(--ink)] hover:bg-[var(--line-soft)]"
+                >
+                  <Share2 size={13} /> Share
+                </button>
+                <button
+                  onClick={handleDelete}
+                  className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-[13.5px] hover:bg-[var(--line-soft)]"
+                  style={{ color: confirmingDelete ? '#bb4e3f' : 'var(--ink)' }}
+                >
+                  <Trash2 size={13} /> {confirmingDelete ? 'Confirm delete?' : 'Delete'}
                 </button>
               </div>
             )}
