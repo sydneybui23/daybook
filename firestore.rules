@@ -30,5 +30,15 @@ service cloud.firestore {
           request.auth.uid in get(/databases/$(database)/documents/circles/$(circleId)).data.memberUids;
       }
     }
+
+    // A "follow" is its own doc (id: "{followerUid}_{followingUid}") so
+    // follower counts can be queried for anyone without exposing their
+    // private profile doc. Readable by any signed-in user; only the
+    // follower themselves can create or remove their own follow.
+    match /follows/{followId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.followerUid;
+      allow delete: if request.auth != null && request.auth.uid == resource.data.followerUid;
+    }
   }
 }

@@ -86,6 +86,9 @@ interface StoreValue {
   pendingModerationItems: () => { entryId: string; comment: Comment }[]
   resolveModeration: (targetId: string, commentId: string, decision: 'approved' | 'rejected') => void
   explorePublicPosts: ExplorePost[]
+  followingUids: Set<string>
+  followUser: (targetUid: string, targetName: string) => void
+  unfollowUser: (targetUid: string) => void
 }
 
 const StoreContext = createContext<StoreValue | null>(null)
@@ -225,6 +228,36 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       () => setExplorePublicPosts([]),
     )
   }, [uid])
+
+  // uids you follow, so Following / follow-buttons / follower counts can react live
+  const [followingUids, setFollowingUids] = useState<Set<string>>(new Set())
+  useEffect(() => {
+    if (!uid || !db) {
+      setFollowingUids(new Set())
+      return
+    }
+    const q = query(collection(db, 'follows'), where('followerUid', '==', uid))
+    return onSnapshot(
+      q,
+      (snap) => setFollowingUids(new Set(snap.docs.map((d) => d.data().followingUid as string))),
+      () => setFollowingUids(new Set()),
+    )
+  }, [uid])
+
+  const followUser = (targetUid: string, targetName: string) => {
+    if (!uid || !db || uid === targetUid) return
+    setDoc(doc(db, 'follows', `${uid}_${targetUid}`), {
+      followerUid: uid,
+      followingUid: targetUid,
+      followingName: targetName,
+      createdAt: Date.now(),
+    })
+  }
+
+  const unfollowUser = (targetUid: string) => {
+    if (!uid || !db) return
+    deleteDoc(doc(db, 'follows', `${uid}_${targetUid}`))
+  }
 
   const addEntry = (e: Entry) => {
     if (!uid || !db) return
@@ -467,8 +500,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       pendingModerationItems,
       resolveModeration,
       explorePublicPosts,
+      followingUids,
+      followUser,
+      unfollowUser,
     }),
-    [ready, entries, circles, profile, readIds, templateQuestions, explorePublicPosts, uid],
+    [ready, entries, circles, profile, readIds, templateQuestions, explorePublicPosts, followingUids, uid],
   )
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>

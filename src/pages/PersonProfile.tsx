@@ -1,17 +1,19 @@
 import { useMemo, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, UserPlus, UserCheck } from 'lucide-react'
 import { useStore } from '../lib/store'
 import { Avatar } from '../lib/avatars'
 import { PostCard, type PostEntry } from '../components/PostCard'
 import { FullEntryOverlay } from '../components/FullEntryOverlay'
 import { toPostEntry } from '../lib/entryHelpers'
 import { EXPLORE_SEED } from '../lib/exploreSeed'
+import { useFollowerCount } from '../lib/useFollowerCount'
 
 export function PersonProfile() {
   const { name: rawName } = useParams()
   const name = decodeURIComponent(rawName ?? '')
-  const { profile, entries, explorePublicPosts, templateQuestions } = useStore()
+  const { profile, entries, circles, explorePublicPosts, templateQuestions, followingUids, followUser, unfollowUser } =
+    useStore()
   const [openEntry, setOpenEntry] = useState<PostEntry | null>(null)
 
   const isMe = name.toLowerCase() === profile.name.toLowerCase()
@@ -20,9 +22,20 @@ export function PersonProfile() {
     () => explorePublicPosts.find((p) => (p.authorName ?? '').toLowerCase() === name.toLowerCase()),
     [explorePublicPosts, name],
   )
+  const circleMember = useMemo(
+    () => circles.flatMap((c) => c.members).find((m) => m.name.toLowerCase() === name.toLowerCase()),
+    [circles, name],
+  )
   const seedPost = useMemo(() => EXPLORE_SEED.find((p) => p.name.toLowerCase() === name.toLowerCase()), [name])
-  const color = isMe ? 'persianRed' : (stranger?.authorColor ?? seedPost?.color ?? 'oliveShadow')
-  const photo = isMe ? profile.photo : stranger?.authorPhoto
+
+  // a real Firebase uid, if we can find one — from a public post's author or
+  // a shared circle. Seed/demo people never have one, so no follow button.
+  const targetUid = stranger?.authorUid ?? circleMember?.id
+  const color = isMe ? 'persianRed' : (stranger?.authorColor ?? circleMember?.color ?? seedPost?.color ?? 'oliveShadow')
+  const photo = isMe ? profile.photo : (stranger?.authorPhoto ?? circleMember?.photo)
+
+  const followerCount = useFollowerCount(isMe ? undefined : targetUid)
+  const isFollowing = !!targetUid && followingUids.has(targetUid)
 
   const posts: PostEntry[] = useMemo(() => {
     if (isMe) {
@@ -62,9 +75,30 @@ export function PersonProfile() {
         <h1 className="mt-4 text-[22px]" style={{ fontFamily: 'var(--font-serif)', fontWeight: 400 }}>
           {name}
         </h1>
-        <p className="mt-1 text-[13px] text-[var(--ink-soft)]">
-          {posts.length} public {posts.length === 1 ? 'entry' : 'entries'}
-        </p>
+        <div className="mt-1 flex items-center gap-3 text-[13px] text-[var(--ink-soft)]">
+          <span>
+            {posts.length} public {posts.length === 1 ? 'entry' : 'entries'}
+          </span>
+          {!isMe && targetUid && (
+            <span>
+              · {followerCount ?? 0} {followerCount === 1 ? 'follower' : 'followers'}
+            </span>
+          )}
+        </div>
+
+        {!isMe && targetUid && (
+          <button
+            onClick={() => (isFollowing ? unfollowUser(targetUid) : followUser(targetUid, name))}
+            className={`mt-4 flex items-center gap-1.5 rounded-full px-4 py-1.5 text-[13px] transition-colors ${
+              isFollowing
+                ? 'border border-[var(--line)] text-[var(--ink-soft)] hover:border-[var(--accent)] hover:text-[var(--accent)]'
+                : 'bg-[var(--ink)] text-white'
+            }`}
+          >
+            {isFollowing ? <UserCheck size={14} /> : <UserPlus size={14} />}
+            {isFollowing ? 'Following' : 'Follow'}
+          </button>
+        )}
       </div>
 
       <div className="mt-8">

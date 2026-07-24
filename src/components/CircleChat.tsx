@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { Send, Reply, X, Heart, MessageCircle } from 'lucide-react'
 import { useStore, type Comment } from '../lib/store'
 import { useAuth } from '../lib/auth'
@@ -88,7 +89,13 @@ export function CircleChat({ circle }: { circle: Circle }) {
             const isMe = m.author === profile.name
             return (
               <div key={m.id} className={`flex gap-3 ${isMe ? 'flex-row-reverse' : ''}`}>
-                <Avatar name={m.author} color={m.authorColor} size={34} />
+                {isMe ? (
+                  <Avatar name={m.author} color={m.authorColor} size={34} />
+                ) : (
+                  <Link to={`/people/${encodeURIComponent(m.author)}`}>
+                    <Avatar name={m.author} color={m.authorColor} size={34} />
+                  </Link>
+                )}
                 <div className={`flex min-w-0 flex-1 flex-col ${isMe ? 'items-end' : 'items-start'}`}>
                   <div
                     className={`max-w-[380px] rounded-2xl border p-3.5 ${
@@ -107,7 +114,14 @@ export function CircleChat({ circle }: { circle: Circle }) {
                   </div>
                   <div className="mt-1 flex items-center gap-2">
                     <p className="text-[10.5px] text-[var(--ink-soft)]">
-                      {isMe ? 'You' : m.author} · {timeAgo(m.createdAt)} ago
+                      {isMe ? (
+                        'You'
+                      ) : (
+                        <Link to={`/people/${encodeURIComponent(m.author)}`} className="hover:text-[var(--accent)] hover:underline">
+                          {m.author}
+                        </Link>
+                      )}{' '}
+                      · {timeAgo(m.createdAt)} ago
                     </p>
                     {m.moderationStatus === 'pending' ? (
                       <span className="text-[10.5px] text-[var(--accent)]">Under review</span>
@@ -125,7 +139,13 @@ export function CircleChat({ circle }: { circle: Circle }) {
           const replies = commentsFor(e.id)
           return (
             <div key={e.id} className={`flex gap-3 ${author.isMe ? 'flex-row-reverse' : ''}`}>
-              <Avatar name={author.name} color={author.color} size={34} />
+              {author.isMe ? (
+                <Avatar name={author.name} color={author.color} size={34} />
+              ) : (
+                <Link to={`/people/${encodeURIComponent(author.name)}`}>
+                  <Avatar name={author.name} color={author.color} size={34} />
+                </Link>
+              )}
               <div className={`flex min-w-0 flex-1 flex-col ${author.isMe ? 'items-end' : 'items-start'}`}>
                 <div
                   className={`max-w-[380px] rounded-2xl border p-4 ${
@@ -135,7 +155,16 @@ export function CircleChat({ circle }: { circle: Circle }) {
                   }`}
                 >
                   <div className={`mb-1.5 flex items-baseline gap-2 ${author.isMe ? 'flex-row-reverse' : ''}`}>
-                    <p className="text-[13.5px] font-medium text-[var(--ink)]">{author.isMe ? 'You' : author.name}</p>
+                    {author.isMe ? (
+                      <p className="text-[13.5px] font-medium text-[var(--ink)]">You</p>
+                    ) : (
+                      <Link
+                        to={`/people/${encodeURIComponent(author.name)}`}
+                        className="text-[13.5px] font-medium text-[var(--ink)] hover:text-[var(--accent)] hover:underline"
+                      >
+                        {author.name}
+                      </Link>
+                    )}
                     <p className="text-[11px] text-[var(--ink-soft)]">{timeLabel(e.date)}</p>
                   </div>
                   <button onClick={() => openFull(e)} className="block w-full text-left">
@@ -179,7 +208,13 @@ export function CircleChat({ circle }: { circle: Circle }) {
                   <div className="mt-2 flex max-w-[380px] flex-col gap-2 border-l border-[var(--line)] pl-4">
                     {replies.map((c) => (
                       <div key={c.id} className="flex items-start gap-2">
-                        <Avatar name={c.author} color={c.authorColor} size={22} />
+                        {c.author === profile.name ? (
+                          <Avatar name={c.author} color={c.authorColor} size={22} />
+                        ) : (
+                          <Link to={`/people/${encodeURIComponent(c.author)}`}>
+                            <Avatar name={c.author} color={c.authorColor} size={22} />
+                          </Link>
+                        )}
                         <div className="min-w-0">
                           {c.sticker ? (
                             <span className="inline-flex items-center gap-1 rounded-full bg-[var(--accent-soft)] px-2.5 py-1 text-[11.5px] text-[var(--accent)]">
@@ -187,7 +222,14 @@ export function CircleChat({ circle }: { circle: Circle }) {
                             </span>
                           ) : (
                             <p className="text-[13px] text-[var(--ink)]">
-                              <span className="font-medium">{c.author}</span> {c.text}
+                              {c.author === profile.name ? (
+                                <span className="font-medium">{c.author}</span>
+                              ) : (
+                                <Link to={`/people/${encodeURIComponent(c.author)}`} className="font-medium hover:text-[var(--accent)] hover:underline">
+                                  {c.author}
+                                </Link>
+                              )}{' '}
+                              {c.text}
                             </p>
                           )}
                           <div className="mt-0.5 flex items-center gap-2">

@@ -10,8 +10,8 @@ const ACCENT = paletteHex('morningTide')
 const INACTIVE = paletteHex('oliveShadow')
 
 const LEFT_ITEMS = [
-  { to: '/archive', label: 'prompts', Icon: NotebookText },
-  { to: '/full-bloom', label: 'your year', Icon: CalendarDays },
+  { to: '/archive', label: 'my journal', Icon: NotebookText },
+  { to: '/full-bloom', label: 'my year', Icon: CalendarDays },
   { to: '/lookback', label: 'growth', Icon: TrendingUp },
 ]
 
