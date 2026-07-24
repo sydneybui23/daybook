@@ -24,10 +24,10 @@ export function PostCard({ entry, onOpen }: { entry: PostEntry; onOpen: (entry: 
   const [liked, setLiked] = useState(false)
 
   return (
-    <article className="mx-auto flex w-full max-w-[360px] flex-col">
+    <article className="mx-auto flex w-full max-w-[260px] flex-col">
       <button
         onClick={() => onOpen(entry)}
-        className="relative aspect-square w-full overflow-hidden rounded-2xl shadow-[0_1px_3px_rgba(0,0,0,0.1)]"
+        className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl shadow-[0_1px_3px_rgba(0,0,0,0.1)]"
       >
         {entry.photo ? (
           <img src={entry.photo} alt="" className="absolute inset-0 h-full w-full object-cover" />
@@ -36,31 +36,34 @@ export function PostCard({ entry, onOpen }: { entry: PostEntry; onOpen: (entry: 
         )}
       </button>
 
-      <Link to={`/people/${encodeURIComponent(entry.name)}`} className="flex items-center gap-2.5 px-1 pt-3">
-        <Avatar name={entry.name} color={entry.color} size={30} />
+      <Link to={`/people/${encodeURIComponent(entry.name)}`} className="flex items-center gap-2 px-1 pt-2">
+        <Avatar name={entry.name} color={entry.color} size={24} />
         <div className="min-w-0">
-          <p className="text-[13.5px] font-medium text-[var(--ink)] hover:underline">{entry.name}</p>
-          <p className="text-[11px] text-[var(--ink-soft)]">{fullDate(entry.date)}</p>
+          <p className="text-[12px] font-medium text-[var(--ink)] hover:underline">{entry.name}</p>
+          <p className="text-[10px] text-[var(--ink-soft)]">{fullDate(entry.date)}</p>
         </div>
       </Link>
 
-      <div className="flex items-center gap-4 px-1 pt-3 text-[var(--ink)]">
+      <div className="flex items-center gap-3 px-1 pt-2 text-[var(--ink)]">
         <button onClick={() => setLiked((v) => !v)} aria-label="Like">
-          <Heart size={21} strokeWidth={1.8} fill={liked ? 'var(--accent)' : 'none'} color={liked ? 'var(--accent)' : 'currentColor'} />
+          <Heart size={17} strokeWidth={1.8} fill={liked ? 'var(--accent)' : 'none'} color={liked ? 'var(--accent)' : 'currentColor'} />
         </button>
         <button onClick={() => onOpen(entry)} aria-label="Comment">
-          <MessageCircle size={21} strokeWidth={1.8} />
+          <MessageCircle size={17} strokeWidth={1.8} />
         </button>
         <button aria-label="Reshare">
-          <Repeat2 size={22} strokeWidth={1.8} />
+          <Repeat2 size={18} strokeWidth={1.8} />
         </button>
         <button aria-label="Send">
-          <Send size={19} strokeWidth={1.8} />
+          <Send size={15} strokeWidth={1.8} />
         </button>
       </div>
 
-      <button onClick={() => onOpen(entry)} className="px-1 pt-3 text-left">
-        <p className="text-[16px] leading-relaxed text-[var(--ink)]" style={{ fontFamily: 'var(--font-serif)', fontWeight: 300 }}>
+      <button onClick={() => onOpen(entry)} className="px-1 pt-2 text-left">
+        <p
+          className="line-clamp-2 text-[13px] leading-snug text-[var(--ink)]"
+          style={{ fontFamily: 'var(--font-serif)', fontWeight: 300 }}
+        >
           {entry.summary}
         </p>
       </button>
