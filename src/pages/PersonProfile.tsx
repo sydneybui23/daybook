@@ -6,6 +6,7 @@ import { Avatar } from '../lib/avatars'
 import { PostCard, type PostEntry } from '../components/PostCard'
 import { FullEntryOverlay } from '../components/FullEntryOverlay'
 import { toPostEntry } from '../lib/entryHelpers'
+import { EXPLORE_SEED } from '../lib/exploreSeed'
 
 export function PersonProfile() {
   const { name: rawName } = useParams()
@@ -19,7 +20,8 @@ export function PersonProfile() {
     () => explorePublicPosts.find((p) => (p.authorName ?? '').toLowerCase() === name.toLowerCase()),
     [explorePublicPosts, name],
   )
-  const color = isMe ? 'persianRed' : (stranger?.authorColor ?? 'oliveShadow')
+  const seedPost = useMemo(() => EXPLORE_SEED.find((p) => p.name.toLowerCase() === name.toLowerCase()), [name])
+  const color = isMe ? 'persianRed' : (stranger?.authorColor ?? seedPost?.color ?? 'oliveShadow')
   const photo = isMe ? profile.photo : stranger?.authorPhoto
 
   const posts: PostEntry[] = useMemo(() => {
@@ -29,9 +31,8 @@ export function PersonProfile() {
         .sort((a, b) => (a.date < b.date ? 1 : -1))
         .map((e) => toPostEntry(e, profile.name, color, templateQuestions))
     }
-    return explorePublicPosts
+    const real = explorePublicPosts
       .filter((p) => (p.authorName ?? '').toLowerCase() === name.toLowerCase())
-      .sort((a, b) => (a.date < b.date ? 1 : -1))
       .map((p) => ({
         id: p.id,
         name: p.authorName ?? name,
@@ -42,6 +43,8 @@ export function PersonProfile() {
         fullText: p.freeText,
         date: p.date,
       }))
+    const seeded = EXPLORE_SEED.filter((p) => p.name.toLowerCase() === name.toLowerCase())
+    return [...real, ...seeded].sort((a, b) => (a.date < b.date ? 1 : -1))
   }, [isMe, entries, profile.name, color, templateQuestions, name, explorePublicPosts])
 
   return (

@@ -4,6 +4,7 @@ import { useAuth } from '../lib/auth'
 import { PostCard, type PostEntry } from '../components/PostCard'
 import { FullEntryOverlay } from '../components/FullEntryOverlay'
 import { toPostEntry } from '../lib/entryHelpers'
+import { EXPLORE_SEED } from '../lib/exploreSeed'
 
 type Tab = 'explore' | 'following' | 'mine'
 
@@ -50,7 +51,7 @@ export function Social() {
   )
 
   const explore: PostEntry[] = useMemo(
-    () => [...following, ...explorePosts].sort((a, b) => (a.date < b.date ? 1 : -1)),
+    () => [...following, ...explorePosts, ...EXPLORE_SEED].sort((a, b) => (a.date < b.date ? 1 : -1)),
     [following, explorePosts],
   )
 

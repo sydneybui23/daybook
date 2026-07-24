@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link2, Share2, Check } from 'lucide-react'
 import { Avatar } from '../lib/avatars'
+import { DAYBOOK_LOGO } from '../lib/localPhotos'
 import type { Member } from '../lib/types'
 
 export function MembersList({
@@ -15,6 +16,7 @@ export function MembersList({
   const [copied, setCopied] = useState(false)
 
   const inviteLink = `${window.location.origin}/invite/${circleId}`
+  const shareText = `Join "${circleName}" on daybook — a private circle where we share our daily journal entries with each other. Tap the link, sign in, and you're in:`
 
   const copyLink = async () => {
     try {
@@ -27,14 +29,25 @@ export function MembersList({
   }
 
   const shareLink = async () => {
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: `Join ${circleName} on daybook`, url: inviteLink })
-      } catch {
-        // user cancelled the share sheet, ignore
-      }
-    } else {
+    if (!navigator.share) {
       copyLink()
+      return
+    }
+    const payload: ShareData = { title: `Join ${circleName} on daybook`, text: shareText, url: inviteLink }
+    try {
+      const res = await fetch(DAYBOOK_LOGO)
+      const blob = await res.blob()
+      const file = new File([blob], 'daybook.png', { type: blob.type })
+      if (navigator.canShare?.({ files: [file] })) {
+        payload.files = [file]
+      }
+    } catch {
+      // couldn't attach the photo, still share the text + link
+    }
+    try {
+      await navigator.share(payload)
+    } catch {
+      // user cancelled the share sheet, ignore
     }
   }
 

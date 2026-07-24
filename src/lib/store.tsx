@@ -25,6 +25,7 @@ export interface Profile {
   bio: string
   photo?: string
   dailyReminder: boolean
+  reminderTime: string
   shareByDefault: boolean
   onboarded: boolean
   insightsSubscribed: boolean
@@ -46,6 +47,7 @@ const DEFAULT_PROFILE: Profile = {
   name: '',
   bio: '',
   dailyReminder: true,
+  reminderTime: '20:00',
   shareByDefault: false,
   onboarded: false,
   insightsSubscribed: false,

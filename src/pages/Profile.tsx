@@ -131,6 +131,17 @@ export function Profile() {
           </div>
           <Toggle on={profile.dailyReminder} onClick={() => updateProfile({ dailyReminder: !profile.dailyReminder })} />
         </div>
+        {profile.dailyReminder && (
+          <div className="flex items-center gap-3 border-b border-[var(--line)] p-4 pl-[45px]">
+            <p className="flex-1 text-[13px] text-[var(--ink-soft)]">Remind me at</p>
+            <input
+              type="time"
+              value={profile.reminderTime}
+              onChange={(e) => updateProfile({ reminderTime: e.target.value })}
+              className="rounded-lg border border-[var(--line)] bg-white p-2 text-[13px] text-[var(--ink)] outline-none focus:border-[var(--accent)]"
+            />
+          </div>
+        )}
         <div className="flex items-center gap-3 p-4">
           <Share2 size={18} className="text-[var(--ink-soft)]" />
           <div className="flex-1">
