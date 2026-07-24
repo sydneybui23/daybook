@@ -13,8 +13,17 @@ export function SignIn() {
     setLoading(true)
     try {
       await signInWithGoogle()
-    } catch {
-      setError("Sign-in didn't go through. Please try again.")
+    } catch (err) {
+      const code = (err as { code?: string })?.code
+      if (code === 'auth/unauthorized-domain') {
+        setError(`This domain (${window.location.hostname}) isn't authorized in Firebase yet — add it under Authentication → Settings → Authorized domains.`)
+      } else if (code === 'auth/popup-blocked') {
+        setError('Your browser blocked the sign-in popup. Allow popups for this site and try again.')
+      } else if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') {
+        setError(null)
+      } else {
+        setError(code ? `Sign-in failed (${code}). Please try again.` : "Sign-in didn't go through. Please try again.")
+      }
     } finally {
       setLoading(false)
     }
