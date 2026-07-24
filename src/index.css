@@ -1,0 +1,47 @@
+@import "tailwindcss";
+
+:root {
+  --ink: #1c1a1d;
+  --ink-soft: #6b6570;
+  --paper: #ffffff;
+  --line: #ececea;
+  --line-soft: #f4f3f1;
+  --accent: #c96f4a;
+  --accent-soft: #f3ded4;
+  --sun: #e8b34f;
+  --sea: #6b93a8;
+
+  --font-sans: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  --font-serif: 'Apple Garamond', 'Garamond', 'EB Garamond', 'Times New Roman', serif;
+  --font-quote: 'EB Garamond', 'Apple Garamond', Garamond, serif;
+
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  min-height: 100svh;
+  background: var(--paper);
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border-radius: 3px;
+}
