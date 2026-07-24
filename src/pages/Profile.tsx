@@ -6,6 +6,7 @@ import { useAuth } from '../lib/auth'
 import { initials } from '../lib/avatars'
 import { TEMPLATE_QUESTIONS } from '../lib/data'
 import { paletteHex } from '../lib/palette'
+import { fileToCompressedDataUrl } from '../lib/imageUtils'
 
 const TIMEZONES: string[] =
   typeof Intl.supportedValuesOf === 'function'
@@ -48,10 +49,9 @@ export function Profile() {
     setEditingQuestions(false)
   }
 
-  const onPhotoFile = (file: File) => {
-    const reader = new FileReader()
-    reader.onload = () => updateProfile({ photo: reader.result as string })
-    reader.readAsDataURL(file)
+  const onPhotoFile = async (file: File) => {
+    const dataUrl = await fileToCompressedDataUrl(file, 500, 0.8)
+    updateProfile({ photo: dataUrl })
   }
 
   const save = () => {

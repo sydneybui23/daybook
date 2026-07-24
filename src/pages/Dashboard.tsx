@@ -14,6 +14,7 @@ import { useDailyInspiration } from '../lib/useDailyInspiration'
 import { pickIcon } from '../lib/pickIcon'
 import { getTodayEnvelope } from '../lib/envelopeContent'
 import { paletteHex, paletteColorForSeed } from '../lib/palette'
+import { fileToCompressedDataUrl } from '../lib/imageUtils'
 import type { Entry, EntryMode } from '../lib/types'
 import type { PostEntry } from '../components/PostCard'
 
@@ -65,10 +66,8 @@ function TodayCTA({
   const [expand, setExpand] = useState<EntryMode | null>(null)
   const already = entries.some((e) => e.date === todayStr())
 
-  const onFile = (file: File) => {
-    const reader = new FileReader()
-    reader.onload = () => setPhoto(reader.result as string)
-    reader.readAsDataURL(file)
+  const onFile = async (file: File) => {
+    setPhoto(await fileToCompressedDataUrl(file))
   }
 
   const submit = () => {

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { ArrowLeft, Camera, MoreVertical, Pencil } from 'lucide-react'
 import { useStore } from '../lib/store'
 import { paletteColorForSeed } from '../lib/palette'
+import { fileToCompressedDataUrl } from '../lib/imageUtils'
 import { Avatar } from '../lib/avatars'
 import { CommentThread } from './CommentThread'
 import type { PostEntry } from './PostCard'
@@ -37,10 +38,8 @@ export function FullEntryOverlay({
     setMenuOpen(false)
   }
 
-  const onPhotoFile = (file: File) => {
-    const reader = new FileReader()
-    reader.onload = () => setDraftPhoto(reader.result as string)
-    reader.readAsDataURL(file)
+  const onPhotoFile = async (file: File) => {
+    setDraftPhoto(await fileToCompressedDataUrl(file))
   }
 
   const save = () => {

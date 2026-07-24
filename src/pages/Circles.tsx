@@ -4,6 +4,7 @@ import { Plus, Image as ImageIcon } from 'lucide-react'
 import { useStore } from '../lib/store'
 import { CircleCard } from '../components/CircleCard'
 import { PALETTE } from '../lib/palette'
+import { fileToCompressedDataUrl } from '../lib/imageUtils'
 
 const COVER_CHOICES = PALETTE.map((p) => p.id)
 
@@ -13,10 +14,8 @@ function CreateCircleForm({ onClose }: { onClose: () => void }) {
   const [description, setDescription] = useState('')
   const [cover, setCover] = useState<string>(COVER_CHOICES[0])
 
-  const onFile = (file: File) => {
-    const reader = new FileReader()
-    reader.onload = () => setCover(reader.result as string)
-    reader.readAsDataURL(file)
+  const onFile = async (file: File) => {
+    setCover(await fileToCompressedDataUrl(file))
   }
 
   const submit = () => {

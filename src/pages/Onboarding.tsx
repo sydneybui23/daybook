@@ -6,6 +6,7 @@ import { TEMPLATE_QUESTIONS } from '../lib/data'
 import { DAYBOOK_LOGO } from '../lib/localPhotos'
 import { initials } from '../lib/avatars'
 import { PrivacyContent } from '../components/PrivacyContent'
+import { fileToCompressedDataUrl } from '../lib/imageUtils'
 import type { TemplateQuestion } from '../lib/types'
 
 type Step = 'terms' | 'profile' | 'questions'
@@ -22,10 +23,8 @@ export function Onboarding() {
   const [questions, setQuestions] = useState<TemplateQuestion[]>(TEMPLATE_QUESTIONS)
   const [selectedQuestions, setSelectedQuestions] = useState<Set<string>>(new Set(TEMPLATE_QUESTIONS.map((q) => q.id)))
 
-  const onPhotoFile = (file: File) => {
-    const reader = new FileReader()
-    reader.onload = () => setPhoto(reader.result as string)
-    reader.readAsDataURL(file)
+  const onPhotoFile = async (file: File) => {
+    setPhoto(await fileToCompressedDataUrl(file, 500, 0.8))
   }
 
   const toggleQuestionSelected = (id: string) => {

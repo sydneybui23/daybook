@@ -3,6 +3,7 @@ import { X, Image as ImageIcon, Trash2 } from 'lucide-react'
 import { useStore } from '../lib/store'
 import { PALETTE } from '../lib/palette'
 import { Avatar } from '../lib/avatars'
+import { fileToCompressedDataUrl } from '../lib/imageUtils'
 import type { Circle } from '../lib/types'
 
 export function EditCircleModal({ circle, onClose }: { circle: Circle; onClose: () => void }) {
@@ -11,10 +12,8 @@ export function EditCircleModal({ circle, onClose }: { circle: Circle; onClose: 
   const [description, setDescription] = useState(circle.description)
   const [cover, setCover] = useState(circle.cover)
 
-  const onFile = (file: File) => {
-    const reader = new FileReader()
-    reader.onload = () => setCover(reader.result as string)
-    reader.readAsDataURL(file)
+  const onFile = async (file: File) => {
+    setCover(await fileToCompressedDataUrl(file))
   }
 
   const save = () => {

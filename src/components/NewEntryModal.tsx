@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { X, PenLine, ListChecks, ScanLine, Camera, CalendarDays, Sparkles, Globe2 } from 'lucide-react'
 import { pickIcon } from '../lib/pickIcon'
 import { useStore } from '../lib/store'
+import { fileToCompressedDataUrl } from '../lib/imageUtils'
 import type { Entry, EntryMode } from '../lib/types'
 
 type Step = 'choose' | 'free' | 'guided' | 'scan' | 'summarize'
@@ -91,24 +92,18 @@ export function NewEntryModal({
     setStep('summarize')
   }
 
-  const onPhotoFile = (file: File) => {
-    const reader = new FileReader()
-    reader.onload = () => setPhoto(reader.result as string)
-    reader.readAsDataURL(file)
+  const onPhotoFile = async (file: File) => {
+    setPhoto(await fileToCompressedDataUrl(file))
   }
 
-  const onScanFile = (file: File) => {
-    const reader = new FileReader()
-    reader.onload = () => {
-      setPhoto(reader.result as string)
-      setScanning(true)
-      setTimeout(() => {
-        setFreeText(MOCK_TRANSCRIPTION)
-        setMode('free')
-        setScanning(false)
-      }, 1400)
-    }
-    reader.readAsDataURL(file)
+  const onScanFile = async (file: File) => {
+    setPhoto(await fileToCompressedDataUrl(file))
+    setScanning(true)
+    setTimeout(() => {
+      setFreeText(MOCK_TRANSCRIPTION)
+      setMode('free')
+      setScanning(false)
+    }, 1400)
   }
 
   const save = () => {
