@@ -1,13 +1,20 @@
 import { Link } from 'react-router-dom'
-import { DAYBOOK_LOGO_HEADER } from '../lib/localPhotos'
+import { HEADER_BACKGROUND } from '../lib/localPhotos'
 
 export function Header() {
   return (
     <header
-      className="relative h-[140px] overflow-hidden bg-cover bg-center sm:h-[170px]"
-      style={{ backgroundImage: `url(${DAYBOOK_LOGO_HEADER})` }}
+      className="relative flex h-[140px] items-end overflow-hidden sm:h-[170px]"
+      style={{ backgroundImage: `url(${HEADER_BACKGROUND})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
     >
-      <Link to="/" className="absolute inset-0" aria-label="daybook home" />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-black/10 to-black/25" />
+      <Link
+        to="/"
+        className="relative z-10 px-6 pb-5 text-[32px] text-white"
+        style={{ fontFamily: 'var(--font-quote)', fontStyle: 'italic', fontWeight: 400 }}
+      >
+        daybook
+      </Link>
     </header>
   )
 }

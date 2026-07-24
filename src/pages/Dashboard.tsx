@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowRight, BookOpen, Camera, Flame, ListChecks, Music, PenLine, PlayCircle, Sparkles } from 'lucide-react'
+import { ArrowRight, BookOpen, Camera, ChevronLeft, ChevronRight, Flame, ListChecks, Music, PenLine, PlayCircle, Sparkles } from 'lucide-react'
 import { NewEntryModal } from '../components/NewEntryModal'
 import { useStore } from '../lib/store'
 import { EntryPhoto } from '../components/EntryPhoto'
@@ -183,6 +183,7 @@ export function Dashboard() {
   const [celebrateDate, setCelebrateDate] = useState<string | undefined>(undefined)
   const [openEntry, setOpenEntry] = useState<PostEntry | null>(null)
   const [editOnOpen, setEditOnOpen] = useState(false)
+  const [circleFeedIndex, setCircleFeedIndex] = useState(0)
 
   const openPersonalEntry = (e: Entry, edit = false) => {
     setOpenEntry(toPostEntry(e, profile.name, 'persianRed', templateQuestions))
@@ -192,7 +193,7 @@ export function Dashboard() {
   const streak = useMemo(() => computeStreak(entries), [entries])
   const thisWeek = useMemo(() => computeThisWeek(entries), [entries])
 
-  const highlight = useMemo(() => {
+  const circleFeed = useMemo(() => {
     const all = circles.flatMap((c) =>
       c.entries
         .filter((e) => e.memberId !== 'me')
@@ -201,11 +202,13 @@ export function Dashboard() {
           return { entry: e, circleId: c.id, circleName: c.name, memberName: member?.name ?? 'Member', memberColor: member?.color ?? 'oliveShadow' }
         }),
     )
-    if (all.length === 0) return null
     const unread = all.filter((a) => !readCircleEntryIds.has(a.entry.id))
     const pool = unread.length > 0 ? unread : all
-    return [...pool].sort((a, b) => (a.entry.date < b.entry.date ? 1 : -1))[0]
+    return [...pool].sort((a, b) => (a.entry.date < b.entry.date ? 1 : -1))
   }, [circles, readCircleEntryIds])
+
+  const circleFeedIdx = circleFeed.length > 0 ? circleFeedIndex % circleFeed.length : 0
+  const highlight = circleFeed[circleFeedIdx] ?? null
 
   const recent = entries.slice(0, 6)
   const envelope = useMemo(() => getTodayEnvelope(entries), [entries])
@@ -404,47 +407,74 @@ export function Dashboard() {
           Find out how your people are doing too
         </h2>
         {highlight ? (
-          <div className="mt-5 mx-auto max-w-[360px] rounded-2xl border border-[var(--line)] p-5">
+          <div className="mt-5 flex items-center justify-center gap-3">
             <button
-              onClick={() =>
-                setOpenEntry({
-                  id: highlight.entry.id,
-                  name: highlight.memberName,
-                  color: highlight.memberColor,
-                  summary: highlight.entry.summary,
-                  iconId: highlight.entry.iconId,
-                  photo: highlight.entry.photo,
-                  fullText: highlight.entry.fullText,
-                  date: highlight.entry.date,
-                })
-              }
-              className="block w-full"
+              onClick={() => setCircleFeedIndex((i) => (i - 1 + circleFeed.length) % circleFeed.length)}
+              disabled={circleFeed.length < 2}
+              aria-label="Previous update"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--ink)] text-white disabled:opacity-20"
             >
-              <img
-                src={highlight.entry.photo || photoForIcon(highlight.entry.iconId, highlight.entry.id)}
-                alt=""
-                className="aspect-square w-full rounded-2xl object-cover"
-              />
+              <ChevronLeft size={18} />
             </button>
-            <div className="mt-3 flex items-center gap-2.5">
-              <Avatar name={highlight.memberName} color={highlight.memberColor} size={30} />
-              <div>
-                <p className="text-[13.5px] font-medium text-[var(--ink)]">{highlight.memberName}</p>
-                <p className="text-[11px] text-[var(--ink-soft)]">{fullDate(highlight.entry.date)}</p>
+
+            <div className="w-full max-w-[360px] rounded-2xl border border-[var(--line)] p-5">
+              <button
+                onClick={() =>
+                  setOpenEntry({
+                    id: highlight.entry.id,
+                    name: highlight.memberName,
+                    color: highlight.memberColor,
+                    summary: highlight.entry.summary,
+                    iconId: highlight.entry.iconId,
+                    photo: highlight.entry.photo,
+                    fullText: highlight.entry.fullText,
+                    date: highlight.entry.date,
+                  })
+                }
+                className="block w-full"
+              >
+                <img
+                  src={highlight.entry.photo || photoForIcon(highlight.entry.iconId, highlight.entry.id)}
+                  alt=""
+                  className="aspect-square w-full rounded-2xl object-cover"
+                />
+              </button>
+              <div className="mt-3 flex items-center gap-2.5">
+                <Avatar name={highlight.memberName} color={highlight.memberColor} size={30} />
+                <div>
+                  <p className="text-[13.5px] font-medium text-[var(--ink)]">{highlight.memberName}</p>
+                  <p className="text-[11px] text-[var(--ink-soft)]">{fullDate(highlight.entry.date)}</p>
+                </div>
+              </div>
+              <p
+                className="mt-3 text-[15px] leading-relaxed text-[var(--ink)]"
+                style={{ fontFamily: 'var(--font-serif)', fontWeight: 300 }}
+              >
+                {highlight.entry.summary}
+              </p>
+              <div className="mt-4 flex items-center justify-between">
+                <Link
+                  to={`/circles/${highlight.circleId}`}
+                  className="flex items-center gap-1 text-[13px] text-[var(--accent)] hover:underline"
+                >
+                  Go to your {highlight.circleName} circle <ArrowRight size={13} />
+                </Link>
+                {circleFeed.length > 1 && (
+                  <p className="text-[11px] text-[var(--ink-soft)]">
+                    {circleFeedIdx + 1} of {circleFeed.length}
+                  </p>
+                )}
               </div>
             </div>
-            <p
-              className="mt-3 text-[15px] leading-relaxed text-[var(--ink)]"
-              style={{ fontFamily: 'var(--font-serif)', fontWeight: 300 }}
+
+            <button
+              onClick={() => setCircleFeedIndex((i) => (i + 1) % circleFeed.length)}
+              disabled={circleFeed.length < 2}
+              aria-label="Next update"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--ink)] text-white disabled:opacity-20"
             >
-              {highlight.entry.summary}
-            </p>
-            <Link
-              to={`/circles/${highlight.circleId}`}
-              className="mt-4 flex items-center gap-1 text-[13px] text-[var(--accent)] hover:underline"
-            >
-              Go to your {highlight.circleName} circle <ArrowRight size={13} />
-            </Link>
+              <ChevronRight size={18} />
+            </button>
           </div>
         ) : (
           <p className="mt-3 text-[13.5px] text-[var(--ink-soft)]">Join a circle to see how your people are doing.</p>

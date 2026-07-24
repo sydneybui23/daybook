@@ -5,8 +5,8 @@ import { paletteHex } from '../lib/palette'
 import { useStore } from '../lib/store'
 import { NewEntryModal } from './NewEntryModal'
 
-const BAR_BG = paletteHex('vanilla')
-const ACCENT = paletteHex('oceanWhisper')
+const BAR_BG = `color-mix(in srgb, ${paletteHex('goldenSand')} 20%, white)`
+const ACCENT = paletteHex('morningTide')
 const INACTIVE = paletteHex('oliveShadow')
 
 const LEFT_ITEMS = [
