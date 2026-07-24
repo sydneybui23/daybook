@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { CircleFadingPlus, Link2, Share2, Check } from 'lucide-react'
+import { Link2, Share2, Check } from 'lucide-react'
 import { Avatar } from '../lib/avatars'
 import type { Member } from '../lib/types'
 
@@ -7,25 +7,14 @@ export function MembersList({
   circleId,
   circleName,
   members,
-  onInvite,
 }: {
   circleId: string
   circleName: string
   members: Member[]
-  onInvite: (name: string) => void
 }) {
-  const [inviting, setInviting] = useState(false)
-  const [name, setName] = useState('')
   const [copied, setCopied] = useState(false)
 
   const inviteLink = `${window.location.origin}/invite/${circleId}`
-
-  const submit = () => {
-    if (!name.trim()) return
-    onInvite(name.trim())
-    setName('')
-    setInviting(false)
-  }
 
   const copyLink = async () => {
     try {
@@ -69,45 +58,25 @@ export function MembersList({
           <Share2 size={12} /> Share
         </button>
       </div>
+      <p className="mb-4 text-[12px] text-[var(--ink-soft)]">
+        Anyone who opens this link and signs in can join {members.length > 0 ? '— they' : ''} will show up here for real.
+      </p>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        {inviting ? (
-          <div className="flex items-center gap-3 rounded-xl border border-dashed border-[var(--line)] p-3">
-            <input
-              autoFocus
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && submit()}
-              placeholder="Friend's name"
-              className="min-w-0 flex-1 border-none bg-transparent text-sm outline-none placeholder:text-[var(--ink-soft)]"
-            />
-            <button
-              onClick={submit}
-              className="shrink-0 rounded-full bg-[var(--ink)] px-3 py-1 text-xs text-white"
-            >
-              Invite
-            </button>
-          </div>
-        ) : (
-          <button
-            onClick={() => setInviting(true)}
-            className="flex items-center gap-3 rounded-xl border border-dashed border-[var(--line)] p-3 text-left text-[var(--ink-soft)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]"
-          >
-            <CircleFadingPlus size={22} strokeWidth={1.6} />
-            <span className="text-sm">Invite a friend by name</span>
-          </button>
-        )}
-
-        {members.map((m) => (
-          <div key={m.id} className="flex items-center gap-3 p-3">
-            <Avatar name={m.name} color={m.color} size={40} />
-            <div className="min-w-0">
-              <p className="text-sm font-semibold text-[var(--ink)]">{m.name}</p>
-              <p className="line-clamp-2 text-[12.5px] leading-snug text-[var(--ink-soft)]">{m.journalHint}</p>
+      {members.length === 0 ? (
+        <p className="text-[13px] text-[var(--ink-soft)]">Just you so far. Share the link above to invite someone.</p>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2">
+          {members.map((m) => (
+            <div key={m.id} className="flex items-center gap-3 p-3">
+              <Avatar name={m.name} color={m.color} size={40} />
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-[var(--ink)]">{m.name}</p>
+                {m.journalHint && <p className="line-clamp-2 text-[12.5px] leading-snug text-[var(--ink-soft)]">{m.journalHint}</p>}
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

@@ -1,6 +1,7 @@
 import { initializeApp } from 'firebase/app'
 import { getAuth, GoogleAuthProvider } from 'firebase/auth'
 import { getFirestore } from 'firebase/firestore'
+import { isSupported, getAnalytics } from 'firebase/analytics'
 
 // These are public web config values (not secrets) — safe to expose to the
 // client. Real data access is protected by Firestore security rules instead.
@@ -11,6 +12,7 @@ const firebaseConfig = {
   storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
 }
 
 export const firebaseConfigured = Boolean(firebaseConfig.apiKey && firebaseConfig.projectId)
@@ -19,3 +21,13 @@ export const app = firebaseConfigured ? initializeApp(firebaseConfig) : null
 export const auth = app ? getAuth(app) : null
 export const db = app ? getFirestore(app) : null
 export const googleProvider = new GoogleAuthProvider()
+
+if (app && firebaseConfig.measurementId) {
+  isSupported()
+    .then((supported) => {
+      if (supported) getAnalytics(app)
+    })
+    .catch(() => {
+      // analytics is optional; ignore environments where it can't load
+    })
+}

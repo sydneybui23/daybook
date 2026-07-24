@@ -1,0 +1,45 @@
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
+import { onAuthStateChanged, signInWithPopup, signOut as firebaseSignOut, type User } from 'firebase/auth'
+import { auth, googleProvider, firebaseConfigured } from './firebase'
+
+interface AuthValue {
+  user: User | null
+  authLoading: boolean
+  signInWithGoogle: () => Promise<void>
+  signOut: () => Promise<void>
+}
+
+const AuthContext = createContext<AuthValue | null>(null)
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<User | null>(null)
+  const [authLoading, setAuthLoading] = useState(firebaseConfigured)
+
+  useEffect(() => {
+    if (!auth) return
+    return onAuthStateChanged(auth, (u) => {
+      setUser(u)
+      setAuthLoading(false)
+    })
+  }, [])
+
+  const signInWithGoogle = async () => {
+    if (!auth) throw new Error('Firebase is not configured — missing VITE_FIREBASE_* env vars.')
+    await signInWithPopup(auth, googleProvider)
+  }
+
+  const signOut = async () => {
+    if (!auth) return
+    await firebaseSignOut(auth)
+  }
+
+  return (
+    <AuthContext.Provider value={{ user, authLoading, signInWithGoogle, signOut }}>{children}</AuthContext.Provider>
+  )
+}
+
+export function useAuth() {
+  const ctx = useContext(AuthContext)
+  if (!ctx) throw new Error('useAuth must be used within AuthProvider')
+  return ctx
+}

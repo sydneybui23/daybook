@@ -26,8 +26,6 @@ function CreateCircleForm({ onClose }: { onClose: () => void }) {
       name: name.trim(),
       description: description.trim() || 'A private circle for sharing daily entries.',
       cover,
-      members: [],
-      entries: [],
     })
     onClose()
   }

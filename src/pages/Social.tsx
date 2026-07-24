@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useStore } from '../lib/store'
-import { PUBLIC_FEED } from '../lib/data'
+import { useAuth } from '../lib/auth'
 import { PostCard, type PostEntry } from '../components/PostCard'
 import { FullEntryOverlay } from '../components/FullEntryOverlay'
 import { toPostEntry } from '../lib/entryHelpers'
@@ -8,7 +8,8 @@ import { toPostEntry } from '../lib/entryHelpers'
 type Tab = 'explore' | 'following' | 'mine'
 
 export function Social() {
-  const { circles, profile, entries, templateQuestions } = useStore()
+  const { circles, profile, entries, templateQuestions, explorePublicPosts } = useStore()
+  const { user } = useAuth()
   const [tab, setTab] = useState<Tab>('explore')
   const [openEntry, setOpenEntry] = useState<PostEntry | null>(null)
 
@@ -16,12 +17,12 @@ export function Social() {
     () =>
       circles.flatMap((c) =>
         c.entries.map((e) => {
-          const isMe = e.memberId === 'me'
+          const isMe = e.memberId === user?.uid
           const member = c.members.find((m) => m.id === e.memberId)
           return {
             id: e.id,
-            name: isMe ? profile.name : member?.name ?? 'Member',
-            color: isMe ? 'persianRed' : member?.color ?? 'oliveShadow',
+            name: isMe ? profile.name : (member?.name ?? 'Member'),
+            color: isMe ? 'persianRed' : (member?.color ?? 'oliveShadow'),
             summary: e.summary,
             iconId: e.iconId,
             photo: e.photo,
@@ -30,12 +31,27 @@ export function Social() {
           }
         }),
       ),
-    [circles, profile.name],
+    [circles, profile.name, user?.uid],
+  )
+
+  const explorePosts: PostEntry[] = useMemo(
+    () =>
+      explorePublicPosts.map((p) => ({
+        id: p.id,
+        name: p.authorName ?? 'Someone',
+        color: p.authorColor ?? 'oliveShadow',
+        summary: p.summary,
+        iconId: p.iconId,
+        photo: p.photo,
+        fullText: p.freeText,
+        date: p.date,
+      })),
+    [explorePublicPosts],
   )
 
   const explore: PostEntry[] = useMemo(
-    () => [...following, ...PUBLIC_FEED].sort((a, b) => (a.date < b.date ? 1 : -1)),
-    [following],
+    () => [...following, ...explorePosts].sort((a, b) => (a.date < b.date ? 1 : -1)),
+    [following, explorePosts],
   )
 
   const mine: PostEntry[] = useMemo(
@@ -82,7 +98,7 @@ export function Social() {
               ? 'Join a circle to see friends’ entries here.'
               : tab === 'mine'
                 ? "You haven't shared any entries publicly yet."
-                : 'Nothing to explore yet.'}
+                : 'Nothing to explore yet. Share an entry publicly and it will show up here for everyone.'}
           </p>
         )}
       </div>

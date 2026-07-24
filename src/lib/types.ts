@@ -14,17 +14,36 @@ export type IconId =
 
 export type EntryMode = 'guided' | 'free'
 
+export interface Comment {
+  id: string
+  author: string
+  authorColor: string
+  text: string
+  sticker: boolean
+  createdAt: number
+  flagged?: boolean
+  flagReason?: 'bullying' | 'racism' | 'hate' | 'other'
+  flagSource?: 'ai' | 'community'
+  moderationStatus?: 'pending' | 'approved' | 'rejected'
+}
+
 export interface Entry {
   id: string
   date: string // ISO yyyy-mm-dd
   summary: string
-  iconId: IconId // used only as a fallback mood/gradient tag when no photo is set
+  iconId: IconId // used only as a fallback mood tag when no photo is set
   mode: EntryMode
   photo?: string // data URL of a user-uploaded photo for the day
   freeText?: string
   answers?: Record<string, string>
   sharedCircleIds?: string[]
   public?: boolean
+  comments?: Comment[]
+  // denormalized author info so public/circle feeds can render without a join
+  authorUid?: string
+  authorName?: string
+  authorColor?: string
+  authorPhoto?: string
 }
 
 export interface TemplateQuestion {
@@ -35,21 +54,23 @@ export interface TemplateQuestion {
 export type MemberRole = 'admin' | 'member'
 
 export interface Member {
-  id: string
+  id: string // the member's real Firebase uid
   name: string
   color: string // avatar gradient key
-  journalHint: string // AI-generated-style clue about what they've been journaling about
+  photo?: string
+  journalHint?: string
   role?: MemberRole
 }
 
 export interface CircleEntry {
   id: string
-  memberId: string
+  memberId: string // the author's real Firebase uid
   date: string
   summary: string
   iconId: IconId
   photo?: string
   fullText?: string
+  comments?: Comment[]
 }
 
 export interface Circle {
@@ -57,6 +78,8 @@ export interface Circle {
   name: string
   description: string
   cover: string // gradient key or data url
-  members: Member[]
+  memberUids: string[] // authoritative membership list for security rules/queries
+  members: Member[] // denormalized member profiles for display
   entries: CircleEntry[]
+  generalComments?: Comment[] // standalone group-chat messages not tied to one entry
 }

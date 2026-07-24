@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Send, Reply, X, Heart, MessageCircle } from 'lucide-react'
 import { useStore, type Comment } from '../lib/store'
+import { useAuth } from '../lib/auth'
 import { Avatar } from '../lib/avatars'
 import { paletteColorForSeed } from '../lib/palette'
 import { FullEntryOverlay } from './FullEntryOverlay'
@@ -26,6 +27,7 @@ type TimelineItem =
 
 export function CircleChat({ circle }: { circle: Circle }) {
   const { profile, commentsFor, addComment } = useStore()
+  const { user } = useAuth()
   const [replyTo, setReplyTo] = useState<CircleEntry | null>(null)
   const [text, setText] = useState('')
   const [openEntry, setOpenEntry] = useState<PostEntry | null>(null)
@@ -33,7 +35,7 @@ export function CircleChat({ circle }: { circle: Circle }) {
   const groupMessages = commentsFor(circle.id)
 
   const resolveAuthor = (e: CircleEntry) => {
-    const isMe = e.memberId === 'me'
+    const isMe = e.memberId === user?.uid
     const member = circle.members.find((m) => m.id === e.memberId)
     return { name: isMe ? profile.name : member?.name ?? 'Member', color: isMe ? 'persianRed' : member?.color ?? 'oliveShadow', isMe }
   }

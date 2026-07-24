@@ -10,7 +10,7 @@ import { EditCircleModal } from '../components/EditCircleModal'
 
 export function CircleDetail() {
   const { id } = useParams()
-  const { circles, inviteMember, markCircleRead } = useStore()
+  const { circles, markCircleRead } = useStore()
   const circle = circles.find((c) => c.id === id)
   const [sharing, setSharing] = useState(false)
   const [editing, setEditing] = useState(false)
@@ -44,12 +44,7 @@ export function CircleDetail() {
       </button>
 
       <div className="mt-8">
-        <MembersList
-          circleId={circle.id}
-          circleName={circle.name}
-          members={circle.members}
-          onInvite={(name) => inviteMember(circle.id, name)}
-        />
+        <MembersList circleId={circle.id} circleName={circle.name} members={circle.members} />
       </div>
 
       <div className="mt-8">

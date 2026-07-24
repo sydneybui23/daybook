@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { AuthProvider, useAuth } from './lib/auth'
 import { StoreProvider, useStore } from './lib/store'
 import { Header } from './components/Header'
 import { BottomNav } from './components/BottomNav'
@@ -12,13 +13,18 @@ import { FullBloom } from './pages/FullBloom'
 import { Profile } from './pages/Profile'
 import { InviteLanding } from './pages/InviteLanding'
 import { Onboarding } from './pages/Onboarding'
+import { SignIn } from './pages/SignIn'
 import { Terms } from './pages/Terms'
 import { PersonProfile } from './pages/PersonProfile'
 import { Moderation } from './pages/Moderation'
 import { SocialRestricted } from './pages/SocialRestricted'
 
 function AppShell() {
-  const { profile } = useStore()
+  const { profile, ready } = useStore()
+
+  if (!ready) {
+    return <div className="flex min-h-[100svh] items-center justify-center text-[13px] text-[var(--ink-soft)]">Loading your journal…</div>
+  }
 
   if (!profile.onboarded) {
     return <Onboarding />
@@ -48,10 +54,28 @@ function AppShell() {
   )
 }
 
-export default function App() {
+function AppInner() {
+  const { user, authLoading } = useAuth()
+
+  if (authLoading) {
+    return <div className="flex min-h-[100svh] items-center justify-center text-[13px] text-[var(--ink-soft)]">Loading…</div>
+  }
+
+  if (!user) {
+    return <SignIn />
+  }
+
   return (
     <StoreProvider>
       <AppShell />
     </StoreProvider>
+  )
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppInner />
+    </AuthProvider>
   )
 }

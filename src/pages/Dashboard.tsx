@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { ArrowRight, BookOpen, Camera, ChevronLeft, ChevronRight, Flame, ListChecks, Music, PenLine, PlayCircle, Sparkles } from 'lucide-react'
 import { NewEntryModal } from '../components/NewEntryModal'
 import { useStore } from '../lib/store'
+import { useAuth } from '../lib/auth'
 import { EntryPhoto } from '../components/EntryPhoto'
 import { Avatar } from '../lib/avatars'
 import { YearWall } from '../components/YearWall'
@@ -179,6 +180,7 @@ function TodayCTA({
 
 export function Dashboard() {
   const { entries, circles, profile, readCircleEntryIds, templateQuestions } = useStore()
+  const { user } = useAuth()
   const [celebrateDate, setCelebrateDate] = useState<string | undefined>(undefined)
   const [openEntry, setOpenEntry] = useState<PostEntry | null>(null)
   const [editOnOpen, setEditOnOpen] = useState(false)
@@ -195,7 +197,7 @@ export function Dashboard() {
   const circleFeed = useMemo(() => {
     const all = circles.flatMap((c) =>
       c.entries
-        .filter((e) => e.memberId !== 'me')
+        .filter((e) => e.memberId !== user?.uid)
         .map((e) => {
           const member = c.members.find((m) => m.id === e.memberId)
           return { entry: e, circleId: c.id, circleName: c.name, memberName: member?.name ?? 'Member', memberColor: member?.color ?? 'oliveShadow' }
@@ -204,7 +206,7 @@ export function Dashboard() {
     const unread = all.filter((a) => !readCircleEntryIds.has(a.entry.id))
     const pool = unread.length > 0 ? unread : all
     return [...pool].sort((a, b) => (a.entry.date < b.entry.date ? 1 : -1))
-  }, [circles, readCircleEntryIds])
+  }, [circles, readCircleEntryIds, user?.uid])
 
   const circleFeedIdx = circleFeed.length > 0 ? circleFeedIndex % circleFeed.length : 0
   const highlight = circleFeed[circleFeedIdx] ?? null
@@ -344,30 +346,32 @@ export function Dashboard() {
             </div>
             <p className="mt-2 text-[12.5px] text-[var(--ink-soft)]">{inspiration.article.blurb}</p>
           </a>
-          <button
-            onClick={() =>
-              setOpenEntry({
-                id: 'featured-today',
-                name: inspiration.featuredEntry.author,
-                color: 'cabernet',
-                summary: inspiration.featuredEntry.summary,
-                iconId: inspiration.featuredEntry.iconId,
-                date: todayStr(),
-              })
-            }
-            className="rounded-2xl bg-white p-5 text-left shadow-[0_1px_3px_rgba(0,0,0,0.06)]"
-          >
-            <p className="text-[11px] uppercase tracking-[0.08em] text-[var(--ink-soft)]">Featured entry</p>
-            <div className="mt-2 flex items-center gap-3">
-              <EntryPhoto iconId={inspiration.featuredEntry.iconId} size={40} radius="12px" />
-              <div>
-                <p className="text-[13.5px] text-[var(--ink)]" style={{ fontFamily: 'var(--font-serif)', fontWeight: 300 }}>
-                  {inspiration.featuredEntry.summary}
-                </p>
-                <p className="text-[12px] text-[var(--ink-soft)]">— {inspiration.featuredEntry.author}</p>
+          {inspiration.featuredEntry && (
+            <button
+              onClick={() =>
+                setOpenEntry({
+                  id: 'featured-today',
+                  name: inspiration.featuredEntry!.author,
+                  color: 'cabernet',
+                  summary: inspiration.featuredEntry!.summary,
+                  iconId: inspiration.featuredEntry!.iconId,
+                  date: todayStr(),
+                })
+              }
+              className="rounded-2xl bg-white p-5 text-left shadow-[0_1px_3px_rgba(0,0,0,0.06)]"
+            >
+              <p className="text-[11px] uppercase tracking-[0.08em] text-[var(--ink-soft)]">Featured entry</p>
+              <div className="mt-2 flex items-center gap-3">
+                <EntryPhoto iconId={inspiration.featuredEntry.iconId} size={40} radius="12px" />
+                <div>
+                  <p className="text-[13.5px] text-[var(--ink)]" style={{ fontFamily: 'var(--font-serif)', fontWeight: 300 }}>
+                    {inspiration.featuredEntry.summary}
+                  </p>
+                  <p className="text-[12px] text-[var(--ink-soft)]">— {inspiration.featuredEntry.author}</p>
+                </div>
               </div>
-            </div>
-          </button>
+            </button>
+          )}
           <a
             href={inspiration.music.url}
             target="_blank"

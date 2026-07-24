@@ -2,7 +2,6 @@ import { useMemo, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
 import { useStore } from '../lib/store'
-import { PUBLIC_FEED } from '../lib/data'
 import { Avatar } from '../lib/avatars'
 import { PostCard, type PostEntry } from '../components/PostCard'
 import { FullEntryOverlay } from '../components/FullEntryOverlay'
@@ -11,16 +10,17 @@ import { toPostEntry } from '../lib/entryHelpers'
 export function PersonProfile() {
   const { name: rawName } = useParams()
   const name = decodeURIComponent(rawName ?? '')
-  const { profile, entries, circles, templateQuestions } = useStore()
+  const { profile, entries, explorePublicPosts, templateQuestions } = useStore()
   const [openEntry, setOpenEntry] = useState<PostEntry | null>(null)
 
   const isMe = name.toLowerCase() === profile.name.toLowerCase()
 
-  const member = useMemo(
-    () => circles.flatMap((c) => c.members).find((m) => m.name.toLowerCase() === name.toLowerCase()),
-    [circles, name],
+  const stranger = useMemo(
+    () => explorePublicPosts.find((p) => (p.authorName ?? '').toLowerCase() === name.toLowerCase()),
+    [explorePublicPosts, name],
   )
-  const color = isMe ? 'persianRed' : member?.color ?? 'oliveShadow'
+  const color = isMe ? 'persianRed' : (stranger?.authorColor ?? 'oliveShadow')
+  const photo = isMe ? profile.photo : stranger?.authorPhoto
 
   const posts: PostEntry[] = useMemo(() => {
     if (isMe) {
@@ -29,15 +29,20 @@ export function PersonProfile() {
         .sort((a, b) => (a.date < b.date ? 1 : -1))
         .map((e) => toPostEntry(e, profile.name, color, templateQuestions))
     }
-    return PUBLIC_FEED.filter((p) => p.name.toLowerCase() === name.toLowerCase()).map((p) => ({
-      id: p.id,
-      name: p.name,
-      color: p.color,
-      summary: p.summary,
-      iconId: p.iconId,
-      date: p.date,
-    }))
-  }, [isMe, entries, profile.name, color, templateQuestions, name])
+    return explorePublicPosts
+      .filter((p) => (p.authorName ?? '').toLowerCase() === name.toLowerCase())
+      .sort((a, b) => (a.date < b.date ? 1 : -1))
+      .map((p) => ({
+        id: p.id,
+        name: p.authorName ?? name,
+        color: p.authorColor ?? 'oliveShadow',
+        summary: p.summary,
+        iconId: p.iconId,
+        photo: p.photo,
+        fullText: p.freeText,
+        date: p.date,
+      }))
+  }, [isMe, entries, profile.name, color, templateQuestions, name, explorePublicPosts])
 
   return (
     <div className="mx-auto max-w-5xl px-6 pb-32 pt-8">
@@ -46,8 +51,8 @@ export function PersonProfile() {
       </Link>
 
       <div className="flex flex-col items-center rounded-2xl border border-[var(--line)] p-8 text-center">
-        {isMe && profile.photo ? (
-          <img src={profile.photo} alt="" className="h-20 w-20 rounded-full object-cover" />
+        {photo ? (
+          <img src={photo} alt="" className="h-20 w-20 rounded-full object-cover" />
         ) : (
           <Avatar name={name} color={color} size={80} />
         )}
