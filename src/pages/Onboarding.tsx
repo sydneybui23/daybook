@@ -24,7 +24,11 @@ export function Onboarding() {
   const [selectedQuestions, setSelectedQuestions] = useState<Set<string>>(new Set(TEMPLATE_QUESTIONS.map((q) => q.id)))
 
   const onPhotoFile = async (file: File) => {
-    setPhoto(await fileToCompressedDataUrl(file, 500, 0.8))
+    try {
+      setPhoto(await fileToCompressedDataUrl(file, 500, 0.8))
+    } catch {
+      alert("Couldn't read that photo — try a JPEG, PNG, or screenshot.")
+    }
   }
 
   const toggleQuestionSelected = (id: string) => {

@@ -13,7 +13,11 @@ export function EditCircleModal({ circle, onClose }: { circle: Circle; onClose: 
   const [cover, setCover] = useState(circle.cover)
 
   const onFile = async (file: File) => {
-    setCover(await fileToCompressedDataUrl(file))
+    try {
+      setCover(await fileToCompressedDataUrl(file))
+    } catch {
+      alert("Couldn't read that photo — try a JPEG, PNG, or screenshot.")
+    }
   }
 
   const save = () => {

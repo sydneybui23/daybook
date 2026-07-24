@@ -15,7 +15,11 @@ function CreateCircleForm({ onClose }: { onClose: () => void }) {
   const [cover, setCover] = useState<string>(COVER_CHOICES[0])
 
   const onFile = async (file: File) => {
-    setCover(await fileToCompressedDataUrl(file))
+    try {
+      setCover(await fileToCompressedDataUrl(file))
+    } catch {
+      alert("Couldn't read that photo — try a JPEG, PNG, or screenshot.")
+    }
   }
 
   const submit = () => {

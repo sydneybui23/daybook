@@ -50,8 +50,12 @@ export function Profile() {
   }
 
   const onPhotoFile = async (file: File) => {
-    const dataUrl = await fileToCompressedDataUrl(file, 500, 0.8)
-    updateProfile({ photo: dataUrl })
+    try {
+      const dataUrl = await fileToCompressedDataUrl(file, 500, 0.8)
+      updateProfile({ photo: dataUrl })
+    } catch {
+      alert("Couldn't read that photo — try a JPEG, PNG, or screenshot.")
+    }
   }
 
   const save = () => {

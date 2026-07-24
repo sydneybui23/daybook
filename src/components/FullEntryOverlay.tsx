@@ -39,7 +39,11 @@ export function FullEntryOverlay({
   }
 
   const onPhotoFile = async (file: File) => {
-    setDraftPhoto(await fileToCompressedDataUrl(file))
+    try {
+      setDraftPhoto(await fileToCompressedDataUrl(file))
+    } catch {
+      alert("Couldn't read that photo — try a JPEG, PNG, or screenshot.")
+    }
   }
 
   const save = () => {

@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app'
 import { getAuth, GoogleAuthProvider } from 'firebase/auth'
-import { getFirestore } from 'firebase/firestore'
+import { initializeFirestore } from 'firebase/firestore'
 import { isSupported, getAnalytics } from 'firebase/analytics'
 
 // These are public web config values (not secrets) — safe to expose to the
@@ -19,7 +19,12 @@ export const firebaseConfigured = Boolean(firebaseConfig.apiKey && firebaseConfi
 
 export const app = firebaseConfigured ? initializeApp(firebaseConfig) : null
 export const auth = app ? getAuth(app) : null
-export const db = app ? getFirestore(app) : null
+// ignoreUndefinedProperties: without this, Firestore throws (and every
+// caller here fires these writes without awaiting/catching) the moment any
+// optional field — like an entry with no photo — is spread in as `undefined`
+// instead of just being left out. That was silently swallowing writes like
+// "Add to today" whenever no photo was attached.
+export const db = app ? initializeFirestore(app, { ignoreUndefinedProperties: true }) : null
 export const googleProvider = new GoogleAuthProvider()
 
 if (app && firebaseConfig.measurementId) {

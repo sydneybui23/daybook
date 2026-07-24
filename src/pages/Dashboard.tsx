@@ -67,7 +67,11 @@ function TodayCTA({
   const already = entries.some((e) => e.date === todayStr())
 
   const onFile = async (file: File) => {
-    setPhoto(await fileToCompressedDataUrl(file))
+    try {
+      setPhoto(await fileToCompressedDataUrl(file))
+    } catch {
+      alert("Couldn't read that photo — try a JPEG, PNG, or screenshot.")
+    }
   }
 
   const submit = () => {

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { X, PenLine, ListChecks, ScanLine, Camera, CalendarDays, Sparkles, Globe2 } from 'lucide-react'
+import { X, ArrowLeft, PenLine, ListChecks, ScanLine, Camera, CalendarDays, Sparkles, Globe2 } from 'lucide-react'
 import { pickIcon } from '../lib/pickIcon'
 import { useStore } from '../lib/store'
 import { fileToCompressedDataUrl } from '../lib/imageUtils'
@@ -92,12 +92,27 @@ export function NewEntryModal({
     setStep('summarize')
   }
 
+  const canGoBack = step === 'summarize' || (step !== 'choose' && !initialStep)
+  const goBack = () => {
+    if (step === 'summarize') setStep(mode === 'guided' ? 'guided' : 'free')
+    else setStep('choose')
+  }
+
   const onPhotoFile = async (file: File) => {
-    setPhoto(await fileToCompressedDataUrl(file))
+    try {
+      setPhoto(await fileToCompressedDataUrl(file))
+    } catch {
+      alert("Couldn't read that photo — try a JPEG, PNG, or screenshot.")
+    }
   }
 
   const onScanFile = async (file: File) => {
-    setPhoto(await fileToCompressedDataUrl(file))
+    try {
+      setPhoto(await fileToCompressedDataUrl(file))
+    } catch {
+      alert("Couldn't read that photo — try a JPEG, PNG, or screenshot.")
+      return
+    }
     setScanning(true)
     setTimeout(() => {
       setFreeText(MOCK_TRANSCRIPTION)
@@ -127,13 +142,20 @@ export function NewEntryModal({
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 backdrop-blur-sm sm:items-center">
       <div className="flex max-h-[88vh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl bg-white sm:rounded-3xl">
         <div className="flex items-center justify-between border-b border-[var(--line)] px-6 py-4">
-          <p className="text-[13px] uppercase tracking-[0.08em] text-[var(--ink-soft)]">
-            {step === 'choose' && 'New entry'}
-            {step === 'free' && 'Just write'}
-            {step === 'guided' && 'Guided template'}
-            {step === 'scan' && 'Scan handwriting'}
-            {step === 'summarize' && 'Summarize your day'}
-          </p>
+          <div className="flex items-center gap-2.5">
+            {canGoBack && (
+              <button onClick={goBack} aria-label="Back" className="text-[var(--ink-soft)] hover:text-[var(--ink)]">
+                <ArrowLeft size={18} />
+              </button>
+            )}
+            <p className="text-[13px] uppercase tracking-[0.08em] text-[var(--ink-soft)]">
+              {step === 'choose' && 'New entry'}
+              {step === 'free' && 'Just write'}
+              {step === 'guided' && 'Guided template'}
+              {step === 'scan' && 'Scan handwriting'}
+              {step === 'summarize' && 'Summarize your day'}
+            </p>
+          </div>
           <button onClick={onClose} className="text-[var(--ink-soft)] hover:text-[var(--ink)]">
             <X size={20} />
           </button>
