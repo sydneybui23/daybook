@@ -28,9 +28,18 @@ export interface Profile {
   shareByDefault: boolean
   onboarded: boolean
   insightsSubscribed: boolean
+  timezone: string
   blockedFromSocial?: boolean
   blockedReason?: FlagReason
   blockedAt?: number
+}
+
+function detectTimezone() {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
+  } catch {
+    return 'UTC'
+  }
 }
 
 const DEFAULT_PROFILE: Profile = {
@@ -40,6 +49,7 @@ const DEFAULT_PROFILE: Profile = {
   shareByDefault: false,
   onboarded: false,
   insightsSubscribed: false,
+  timezone: detectTimezone(),
   blockedFromSocial: false,
 }
 

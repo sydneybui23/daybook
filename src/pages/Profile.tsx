@@ -1,10 +1,16 @@
 import { useState } from 'react'
-import { Camera, Bell, Share2, LogOut, Pencil, ListChecks, Trash2, Plus, ShieldCheck, ShieldAlert } from 'lucide-react'
+import { Camera, Bell, Share2, LogOut, Pencil, ListChecks, Trash2, Plus, ShieldCheck, ShieldAlert, Globe } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useStore } from '../lib/store'
+import { useAuth } from '../lib/auth'
 import { initials } from '../lib/avatars'
 import { TEMPLATE_QUESTIONS } from '../lib/data'
 import { paletteHex } from '../lib/palette'
+
+const TIMEZONES: string[] =
+  typeof Intl.supportedValuesOf === 'function'
+    ? Intl.supportedValuesOf('timeZone')
+    : ['UTC', 'America/New_York', 'America/Chicago', 'America/Denver', 'America/Los_Angeles', 'Europe/London', 'Europe/Paris', 'Asia/Tokyo']
 
 function Toggle({ on, onClick }: { on: boolean; onClick: () => void }) {
   return (
@@ -30,6 +36,7 @@ function Toggle({ on, onClick }: { on: boolean; onClick: () => void }) {
 
 export function Profile() {
   const { profile, updateProfile, templateQuestions, updateTemplateQuestions } = useStore()
+  const { signOut } = useAuth()
   const [editing, setEditing] = useState(false)
   const [name, setName] = useState(profile.name)
   const [bio, setBio] = useState(profile.bio)
@@ -132,6 +139,24 @@ export function Profile() {
           </div>
           <Toggle on={profile.shareByDefault} onClick={() => updateProfile({ shareByDefault: !profile.shareByDefault })} />
         </div>
+        <div className="flex items-center gap-3 border-t border-[var(--line)] p-4">
+          <Globe size={18} className="shrink-0 text-[var(--ink-soft)]" />
+          <div className="flex-1">
+            <p className="text-[14px] text-[var(--ink)]">Time zone</p>
+            <p className="text-[12px] text-[var(--ink-soft)]">Used so "today" always lines up with where you are.</p>
+          </div>
+          <select
+            value={profile.timezone}
+            onChange={(e) => updateProfile({ timezone: e.target.value })}
+            className="max-w-[160px] rounded-lg border border-[var(--line)] bg-white p-2 text-[12.5px] text-[var(--ink)] outline-none focus:border-[var(--accent)]"
+          >
+            {TIMEZONES.map((tz) => (
+              <option key={tz} value={tz}>
+                {tz.replace(/_/g, ' ')}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       <div className="mt-6 rounded-2xl border border-[var(--line)] p-5">
@@ -232,7 +257,10 @@ export function Profile() {
         <ShieldAlert size={16} /> Trust & safety review
       </Link>
 
-      <button className="mt-4 flex items-center gap-2 text-[13.5px] text-[var(--ink-soft)] hover:text-[var(--accent)]">
+      <button
+        onClick={() => signOut()}
+        className="mt-4 flex items-center gap-2 text-[13.5px] text-[var(--ink-soft)] hover:text-[var(--accent)]"
+      >
         <LogOut size={16} /> Log out
       </button>
     </div>

@@ -39,7 +39,12 @@ export function Archive() {
     const sorted = [...entries].sort((a, b) => (a.date < b.date ? 1 : -1))
     const byMode = filter === 'all' ? sorted : sorted.filter((e) => e.mode === filter)
     if (!q) return byMode
-    return byMode.filter((e) => e.summary.toLowerCase().includes(q))
+    return byMode.filter((e) => {
+      const haystack = [e.summary, e.freeText, e.date, fmt(e.date), ...Object.values(e.answers ?? {})]
+        .join(' ')
+        .toLowerCase()
+      return haystack.includes(q)
+    })
   }, [entries, query, filter])
 
   return (
@@ -68,7 +73,7 @@ export function Archive() {
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search your entries..."
+          placeholder="Search by date, keyword, or what you wrote..."
           className="w-full border-none bg-transparent text-sm outline-none placeholder:text-[var(--ink-soft)]"
         />
       </div>
