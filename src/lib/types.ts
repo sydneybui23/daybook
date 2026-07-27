@@ -61,8 +61,10 @@ export interface TravelEntry {
   id: string
   country: string
   city?: string
-  month: number // 1-12
-  year: number
+  month: number // 1-12, start month
+  year: number // start year
+  endMonth?: number // 1-12, set only when the trip spans more than one month
+  endYear?: number
   planned: boolean // false = a trip you've taken, true = a future trip you're planning
   notes?: string
 }

@@ -14,6 +14,13 @@ function countryCoords(name: string) {
   return COUNTRIES.find((c) => c.name === name)
 }
 
+function formatRange(t: TravelEntry) {
+  const start = `${MONTHS[t.month - 1]} ${t.year}`
+  if (!t.endMonth || !t.endYear || (t.endMonth === t.month && t.endYear === t.year)) return start
+  const end = `${MONTHS[t.endMonth - 1]} ${t.endYear}`
+  return t.endYear === t.year ? `${MONTHS[t.month - 1]} – ${end}` : `${start} – ${end}`
+}
+
 function DeleteTripButton({ onDelete }: { onDelete: () => void }) {
   const [confirming, setConfirming] = useState(false)
   return (
@@ -41,6 +48,9 @@ export function Travel() {
   const [city, setCity] = useState('')
   const [month, setMonth] = useState(new Date().getMonth() + 1)
   const [year, setYear] = useState(new Date().getFullYear())
+  const [multiMonth, setMultiMonth] = useState(false)
+  const [endMonth, setEndMonth] = useState(new Date().getMonth() + 1)
+  const [endYear, setEndYear] = useState(new Date().getFullYear())
   const [notes, setNotes] = useState('')
 
   const filtered = useMemo(
@@ -71,17 +81,24 @@ export function Travel() {
   const visitedCount = new Set(travelEntries.filter((t) => !t.planned).map((t) => t.country)).size
 
   const submit = () => {
+    if (multiMonth && endYear * 12 + endMonth < year * 12 + month) {
+      alert("The end month can't be before the start month.")
+      return
+    }
     const trip: Omit<TravelEntry, 'id'> = {
       country,
       city: city.trim() || undefined,
       month,
       year,
+      endMonth: multiMonth ? endMonth : undefined,
+      endYear: multiMonth ? endYear : undefined,
       planned: planning,
       notes: notes.trim() || undefined,
     }
     addTravelEntry(trip)
     setCity('')
     setNotes('')
+    setMultiMonth(false)
   }
 
   return (
@@ -159,6 +176,46 @@ export function Travel() {
             className="rounded-lg border border-[var(--line)] p-2.5 text-[13.5px] text-[var(--ink)] outline-none focus:border-[var(--accent)]"
           />
         </div>
+
+        <label className="mt-3 flex items-center gap-2 text-[13px] text-[var(--ink)]">
+          <input
+            type="checkbox"
+            checked={multiMonth}
+            onChange={(e) => {
+              setMultiMonth(e.target.checked)
+              if (e.target.checked) {
+                setEndMonth(month)
+                setEndYear(year)
+              }
+            }}
+            className="h-4 w-4 accent-[var(--accent)]"
+          />
+          This trip spanned more than one month
+        </label>
+
+        {multiMonth && (
+          <div className="mt-2 grid gap-3 sm:grid-cols-2">
+            <select
+              value={endMonth}
+              onChange={(e) => setEndMonth(Number(e.target.value))}
+              className="rounded-lg border border-[var(--line)] bg-white p-2.5 text-[13.5px] text-[var(--ink)] outline-none focus:border-[var(--accent)]"
+            >
+              {MONTHS.map((m, i) => (
+                <option key={m} value={i + 1}>
+                  Ends {m}
+                </option>
+              ))}
+            </select>
+            <input
+              type="number"
+              value={endYear}
+              onChange={(e) => setEndYear(Number(e.target.value))}
+              placeholder="End year"
+              className="rounded-lg border border-[var(--line)] p-2.5 text-[13.5px] text-[var(--ink)] outline-none focus:border-[var(--accent)]"
+            />
+          </div>
+        )}
+
         <textarea
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
@@ -183,7 +240,7 @@ export function Travel() {
                 {t.city ? `, ${t.city}` : ''}
               </p>
               <p className="text-[12px] text-[var(--ink-soft)]">
-                {MONTHS[t.month - 1]} {t.year}
+                {formatRange(t)}
                 {t.notes ? ` · ${t.notes}` : ''}
               </p>
             </div>
