@@ -52,6 +52,11 @@ export interface TemplateQuestion {
   label: string
 }
 
+export interface HabitItem {
+  id: string
+  label: string
+}
+
 export type MemberRole = 'admin' | 'member'
 
 export interface Member {

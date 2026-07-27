@@ -13,8 +13,8 @@ import {
   type FieldValue,
   type Unsubscribe,
 } from 'firebase/firestore'
-import type { Circle, CircleEntry, Comment, Entry, MemberRole, TemplateQuestion } from './types'
-import { TEMPLATE_QUESTIONS } from './data'
+import type { Circle, CircleEntry, Comment, Entry, HabitItem, MemberRole, TemplateQuestion } from './types'
+import { DEFAULT_HABITS, TEMPLATE_QUESTIONS } from './data'
 import { detectHarm, runServerModeration, type FlagReason } from './moderation'
 import { entryBodyText } from './entryHelpers'
 import { useAuth } from './auth'
@@ -101,6 +101,10 @@ interface StoreValue {
   followingUids: Set<string>
   followUser: (targetUid: string, targetName: string) => void
   unfollowUser: (targetUid: string) => void
+  habits: HabitItem[]
+  updateHabits: (habits: HabitItem[]) => void
+  habitLogs: Record<string, string[]>
+  toggleHabit: (date: string, habitId: string) => void
 }
 
 const StoreContext = createContext<StoreValue | null>(null)
@@ -112,18 +116,21 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false)
   const [profile, setProfile] = useState<Profile>(DEFAULT_PROFILE)
   const [templateQuestions, setTemplateQuestionsState] = useState<TemplateQuestion[]>(TEMPLATE_QUESTIONS)
+  const [habits, setHabitsState] = useState<HabitItem[]>(DEFAULT_HABITS)
   const [readIds, setReadIds] = useState<Set<string>>(new Set())
   const [entries, setEntries] = useState<Entry[]>([])
   const [circleBases, setCircleBases] = useState<Omit<Circle, 'entries' | 'generalComments'>[]>([])
   const [circleEntries, setCircleEntries] = useState<Record<string, CircleEntry[]>>({})
   const [circleChats, setCircleChats] = useState<Record<string, Comment[]>>({})
   const [explorePublicPosts, setExplorePublicPosts] = useState<ExplorePost[]>([])
+  const [habitLogs, setHabitLogs] = useState<Record<string, string[]>>({})
 
   // user profile doc (creates it on first real sign-in)
   useEffect(() => {
     if (!uid || !db) {
       setProfile(DEFAULT_PROFILE)
       setTemplateQuestionsState(TEMPLATE_QUESTIONS)
+      setHabitsState(DEFAULT_HABITS)
       setReadIds(new Set())
       setReady(!uid)
       return
@@ -134,11 +141,28 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         const data = snap.data()
         setProfile({ ...DEFAULT_PROFILE, ...data } as Profile)
         setTemplateQuestionsState((data.templateQuestions as TemplateQuestion[]) ?? TEMPLATE_QUESTIONS)
+        setHabitsState((data.habits as HabitItem[]) ?? DEFAULT_HABITS)
         setReadIds(new Set((data.readCircleEntryIds as string[]) ?? []))
       } else {
-        await setDoc(ref, { ...DEFAULT_PROFILE, templateQuestions: TEMPLATE_QUESTIONS, readCircleEntryIds: [] })
+        await setDoc(ref, { ...DEFAULT_PROFILE, templateQuestions: TEMPLATE_QUESTIONS, habits: DEFAULT_HABITS, readCircleEntryIds: [] })
       }
       setReady(true)
+    })
+  }, [uid])
+
+  // daily habit completions, one doc per date: users/{uid}/habitLogs/{date}
+  useEffect(() => {
+    if (!uid || !db) {
+      setHabitLogs({})
+      return
+    }
+    const ref = collection(db, 'users', uid, 'habitLogs')
+    return onSnapshot(ref, (snap) => {
+      const next: Record<string, string[]> = {}
+      snap.docs.forEach((d) => {
+        next[d.id] = (d.data().completed as string[]) ?? []
+      })
+      setHabitLogs(next)
     })
   }, [uid])
 
@@ -503,7 +527,21 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const updateTemplateQuestions = (questions: TemplateQuestion[]) => {
     setTemplateQuestionsState(questions)
     if (!uid || !db) return
-    updateDoc(doc(db, 'users', uid), { templateQuestions: questions })
+    updateDoc(doc(db, 'users', uid), { templateQuestions: questions }).catch(reportFailure('save your questions'))
+  }
+
+  const updateHabits = (next: HabitItem[]) => {
+    setHabitsState(next)
+    if (!uid || !db) return
+    updateDoc(doc(db, 'users', uid), { habits: next }).catch(reportFailure('save your habits'))
+  }
+
+  const toggleHabit = (date: string, habitId: string) => {
+    if (!uid || !db) return
+    const current = habitLogs[date] ?? []
+    const next = current.includes(habitId) ? current.filter((id) => id !== habitId) : [...current, habitId]
+    setHabitLogs((prev) => ({ ...prev, [date]: next }))
+    setDoc(doc(db, 'users', uid, 'habitLogs', date), { completed: next }).catch(reportFailure('save that habit'))
   }
 
   const value = useMemo(
@@ -538,8 +576,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       followingUids,
       followUser,
       unfollowUser,
+      habits,
+      updateHabits,
+      habitLogs,
+      toggleHabit,
     }),
-    [ready, entries, circles, profile, readIds, templateQuestions, explorePublicPosts, followingUids, uid],
+    [ready, entries, circles, profile, readIds, templateQuestions, explorePublicPosts, followingUids, uid, habits, habitLogs],
   )
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>

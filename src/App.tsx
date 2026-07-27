@@ -18,6 +18,7 @@ import { Terms } from './pages/Terms'
 import { PersonProfile } from './pages/PersonProfile'
 import { Moderation } from './pages/Moderation'
 import { SocialRestricted } from './pages/SocialRestricted'
+import { DailyHabits } from './pages/DailyHabits'
 
 function AppShell() {
   const { profile, ready } = useStore()
@@ -40,6 +41,7 @@ function AppShell() {
           <Route path="/circles" element={<Circles />} />
           <Route path="/circles/:id" element={<CircleDetail />} />
           <Route path="/social" element={profile.blockedFromSocial ? <SocialRestricted /> : <Social />} />
+          <Route path="/habits" element={<DailyHabits />} />
           <Route path="/lookback" element={<LookBack />} />
           <Route path="/full-bloom" element={<FullBloom />} />
           <Route path="/profile" element={<Profile />} />

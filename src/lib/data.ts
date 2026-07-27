@@ -1,4 +1,12 @@
-import type { TemplateQuestion } from './types'
+import type { HabitItem, TemplateQuestion } from './types'
+
+export const DEFAULT_HABITS: HabitItem[] = [
+  { id: 'water', label: 'Drink water' },
+  { id: 'move', label: 'Move my body' },
+  { id: 'read', label: 'Read something' },
+  { id: 'pray', label: 'Pray / meditate' },
+  { id: 'sleep', label: 'Sleep by 11pm' },
+]
 
 export const TEMPLATE_QUESTIONS: TemplateQuestion[] = [
   { id: 'gratitude', label: 'What are three great things that happened yesterday (gratitude)?' },

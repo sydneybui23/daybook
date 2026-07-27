@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { NavLink } from 'react-router-dom'
-import { Users, Compass, NotebookText, TrendingUp, CalendarDays, UserCircle, Plus } from 'lucide-react'
+import { Users, Compass, NotebookText, TrendingUp, CalendarDays, UserCircle, Plus, ListTodo } from 'lucide-react'
 import { paletteHex } from '../lib/palette'
 import { useStore } from '../lib/store'
 import { NewEntryModal } from './NewEntryModal'
@@ -12,6 +12,7 @@ const INACTIVE = paletteHex('oliveShadow')
 const LEFT_ITEMS = [
   { to: '/archive', label: 'my journal', Icon: NotebookText },
   { to: '/full-bloom', label: 'my year', Icon: CalendarDays },
+  { to: '/habits', label: 'habits', Icon: ListTodo },
   { to: '/lookback', label: 'growth', Icon: TrendingUp },
 ]
 
@@ -34,7 +35,7 @@ export function BottomNav() {
         className="fixed inset-x-0 bottom-0 z-30 border-t border-black/5 pb-[env(safe-area-inset-bottom)] lg:hidden"
         style={{ background: BAR_BG }}
       >
-        <div className="mx-auto grid max-w-5xl grid-cols-7 items-center px-1 py-2">
+        <div className="mx-auto grid max-w-5xl grid-cols-8 items-center px-1 py-2">
           {LEFT_ITEMS.map((item) => (
             <TabLink key={item.to} {...item} />
           ))}
