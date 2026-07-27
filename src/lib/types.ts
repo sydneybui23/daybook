@@ -67,6 +67,7 @@ export interface TravelEntry {
   endYear?: number
   planned: boolean // false = a trip you've taken, true = a future trip you're planning
   notes?: string
+  photo?: string // small photo shown as the trip's icon
 }
 
 export type MemberRole = 'admin' | 'member'

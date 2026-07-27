@@ -21,6 +21,7 @@ import { useAuth } from './auth'
 import { db } from './firebase'
 
 type EntryPatch = { [K in keyof Entry]?: Entry[K] | FieldValue }
+type TravelPatch = { [K in keyof TravelEntry]?: TravelEntry[K] | FieldValue }
 
 function reportFailure(action: string) {
   return (err: unknown) => {
@@ -118,7 +119,7 @@ interface StoreValue {
   toggleLike: (entryId: string) => void
   travelEntries: TravelEntry[]
   addTravelEntry: (e: Omit<TravelEntry, 'id'>) => void
-  updateTravelEntry: (id: string, patch: Partial<TravelEntry>) => void
+  updateTravelEntry: (id: string, patch: TravelPatch) => void
   deleteTravelEntry: (id: string) => void
 }
 
@@ -633,7 +634,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setDoc(doc(db, 'users', uid, 'travel', id), e).catch(reportFailure('save that trip'))
   }
 
-  const updateTravelEntry = (id: string, patch: Partial<TravelEntry>) => {
+  const updateTravelEntry = (id: string, patch: TravelPatch) => {
     if (!uid || !db) return
     updateDoc(doc(db, 'users', uid, 'travel', id), patch).catch(reportFailure('save that trip'))
   }
