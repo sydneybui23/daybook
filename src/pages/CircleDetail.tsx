@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, useNavigate, Link } from 'react-router-dom'
 import { ArrowLeft, Send } from 'lucide-react'
 import { useStore } from '../lib/store'
 import { CircleCard } from '../components/CircleCard'
@@ -10,7 +10,8 @@ import { EditCircleModal } from '../components/EditCircleModal'
 
 export function CircleDetail() {
   const { id } = useParams()
-  const { circles, markCircleRead } = useStore()
+  const navigate = useNavigate()
+  const { circles, markCircleRead, deleteCircle } = useStore()
   const circle = circles.find((c) => c.id === id)
   const [sharing, setSharing] = useState(false)
   const [editing, setEditing] = useState(false)
@@ -34,7 +35,15 @@ export function CircleDetail() {
         <ArrowLeft size={14} /> Circles
       </Link>
 
-      <CircleCard circle={circle} height={280} onEdit={() => setEditing(true)} />
+      <CircleCard
+        circle={circle}
+        height={280}
+        onEdit={() => setEditing(true)}
+        onDelete={() => {
+          deleteCircle(circle.id)
+          navigate('/circles')
+        }}
+      />
 
       <button
         onClick={() => setSharing(true)}

@@ -56,6 +56,7 @@ export function Social() {
             summary: e.summary,
             iconId: e.iconId,
             photo: e.photo,
+            photos: e.photos,
             fullText: e.fullText,
             date: e.date,
           }
@@ -73,6 +74,7 @@ export function Social() {
         summary: p.summary,
         iconId: p.iconId,
         photo: p.photo,
+        photos: p.photos,
         fullText: p.freeText,
         date: p.date,
       })),

@@ -60,6 +60,7 @@ export function CircleChat({ circle }: { circle: Circle }) {
       summary: e.summary,
       iconId: e.iconId,
       photo: e.photo,
+      photos: e.photos,
       fullText: e.fullText,
       date: e.date,
     })

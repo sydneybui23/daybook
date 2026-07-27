@@ -433,6 +433,7 @@ export function Dashboard() {
                     summary: highlight.entry.summary,
                     iconId: highlight.entry.iconId,
                     photo: highlight.entry.photo,
+                    photos: highlight.entry.photos,
                     fullText: highlight.entry.fullText,
                     date: highlight.entry.date,
                   })

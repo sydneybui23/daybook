@@ -20,6 +20,7 @@ export function toPostEntry(entry: Entry, authorName: string, authorColor: strin
     summary: entry.summary,
     iconId: entry.iconId,
     photo: entry.photo,
+    photos: entry.photos,
     fullText: entryBodyText(entry, questions),
     date: entry.date,
   }

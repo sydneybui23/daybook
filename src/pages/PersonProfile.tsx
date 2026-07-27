@@ -53,6 +53,7 @@ export function PersonProfile() {
         summary: p.summary,
         iconId: p.iconId,
         photo: p.photo,
+        photos: p.photos,
         fullText: p.freeText,
         date: p.date,
       }))

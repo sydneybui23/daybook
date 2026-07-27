@@ -10,13 +10,24 @@ import {
   where,
   collectionGroup,
   arrayUnion,
+  type FieldValue,
   type Unsubscribe,
 } from 'firebase/firestore'
 import type { Circle, CircleEntry, Comment, Entry, MemberRole, TemplateQuestion } from './types'
 import { TEMPLATE_QUESTIONS } from './data'
 import { detectHarm, runServerModeration, type FlagReason } from './moderation'
+import { entryBodyText } from './entryHelpers'
 import { useAuth } from './auth'
 import { db } from './firebase'
+
+type EntryPatch = { [K in keyof Entry]?: Entry[K] | FieldValue }
+
+function reportFailure(action: string) {
+  return (err: unknown) => {
+    console.error(err)
+    alert(`Couldn't ${action}. Check your connection and try again.`)
+  }
+}
 
 export type { Comment } from './types'
 
@@ -63,12 +74,13 @@ interface StoreValue {
   ready: boolean
   entries: Entry[]
   addEntry: (e: Entry) => void
-  updateEntry: (id: string, patch: Partial<Entry>) => void
+  updateEntry: (id: string, patch: EntryPatch) => void
   deleteEntry: (id: string) => void
   circles: Circle[]
   addCircle: (c: Omit<Circle, 'memberUids' | 'members' | 'entries'>) => void
   joinCircle: (circleId: string) => Promise<void>
   shareEntryToCircle: (circleId: string, entry: Entry) => void
+  deleteCircle: (circleId: string) => void
   profile: Profile
   updateProfile: (patch: Partial<Profile>) => void
   readCircleEntryIds: Set<string>
@@ -263,24 +275,24 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (!uid || !db) return
     const database = db
     const sameDate = entries.filter((p) => p.date === e.date && p.id !== e.id)
-    sameDate.forEach((p) => deleteDoc(doc(database, 'users', uid, 'entries', p.id)))
+    sameDate.forEach((p) => deleteDoc(doc(database, 'users', uid, 'entries', p.id)).catch(reportFailure('replace today\'s earlier entry')))
     setDoc(doc(database, 'users', uid, 'entries', e.id), {
       ...e,
       authorUid: uid,
       authorName: profile.name,
       authorColor: 'persianRed',
       authorPhoto: profile.photo ?? null,
-    })
+    }).catch(reportFailure('save your entry'))
   }
 
-  const updateEntry = (id: string, patch: Partial<Entry>) => {
+  const updateEntry = (id: string, patch: EntryPatch) => {
     if (!uid || !db) return
-    updateDoc(doc(db, 'users', uid, 'entries', id), patch)
+    updateDoc(doc(db, 'users', uid, 'entries', id), patch).catch(reportFailure('save your changes'))
   }
 
   const deleteEntry = (id: string) => {
     if (!uid || !db) return
-    deleteDoc(doc(db, 'users', uid, 'entries', id))
+    deleteDoc(doc(db, 'users', uid, 'entries', id)).catch(reportFailure('delete that entry'))
   }
 
   const addCircle = (c: Omit<Circle, 'memberUids' | 'members' | 'entries'>) => {
@@ -291,15 +303,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       cover: c.cover,
       memberUids: [uid],
       members: [],
-    })
+    }).catch(reportFailure('create that circle'))
   }
 
   const joinCircle = async (circleId: string) => {
     if (!uid || !db) return
-    await updateDoc(doc(db, 'circles', circleId), {
-      memberUids: arrayUnion(uid),
-      members: arrayUnion({ id: uid, name: profile.name, color: 'persianRed', photo: profile.photo ?? null }),
-    })
+    try {
+      await updateDoc(doc(db, 'circles', circleId), {
+        memberUids: arrayUnion(uid),
+        members: arrayUnion({ id: uid, name: profile.name, color: 'persianRed', photo: profile.photo ?? null }),
+      })
+    } catch (err) {
+      reportFailure('join that circle')(err)
+    }
   }
 
   const shareEntryToCircle = (circleId: string, entry: Entry) => {
@@ -311,13 +327,31 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       summary: entry.summary,
       iconId: entry.iconId,
       photo: entry.photo ?? null,
-      fullText: entry.freeText ?? null,
-    })
+      photos: entry.photos ?? null,
+      fullText: entryBodyText(entry, templateQuestions) || null,
+    }).catch(reportFailure('share that entry to the circle'))
+  }
+
+  const deleteCircle = (circleId: string) => {
+    if (!uid || !db) return
+    const database = db
+    const circle = circles.find((c) => c.id === circleId)
+    ;(async () => {
+      try {
+        if (circle) {
+          await Promise.all(circle.entries.map((e) => deleteDoc(doc(database, 'circles', circleId, 'entries', e.id))))
+          await deleteDoc(doc(database, 'circles', circleId, 'meta', 'chat')).catch(() => {})
+        }
+        await deleteDoc(doc(database, 'circles', circleId))
+      } catch (err) {
+        reportFailure('delete that circle')(err)
+      }
+    })()
   }
 
   const updateProfile = (patch: Partial<Profile>) => {
     if (!uid || !db) return
-    updateDoc(doc(db, 'users', uid), patch)
+    updateDoc(doc(db, 'users', uid), patch).catch(reportFailure('save your profile'))
   }
 
   const unreadCountForCircle = (circleId: string) => {
@@ -444,7 +478,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const updateCircle = (circleId: string, patch: Partial<Pick<Circle, 'name' | 'description' | 'cover'>>) => {
     if (!db) return
-    updateDoc(doc(db, 'circles', circleId), patch)
+    updateDoc(doc(db, 'circles', circleId), patch).catch(reportFailure('save that circle'))
   }
 
   const removeMember = (circleId: string, memberId: string) => {
@@ -454,7 +488,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     updateDoc(doc(db, 'circles', circleId), {
       members: circle.members.filter((m) => m.id !== memberId),
       memberUids: circle.memberUids.filter((id) => id !== memberId),
-    })
+    }).catch(reportFailure('remove that member'))
   }
 
   const updateMemberRole = (circleId: string, memberId: string, role: MemberRole) => {
@@ -463,7 +497,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (!circle) return
     updateDoc(doc(db, 'circles', circleId), {
       members: circle.members.map((m) => (m.id === memberId ? { ...m, role } : m)),
-    })
+    }).catch(reportFailure('update that member\'s role'))
   }
 
   const updateTemplateQuestions = (questions: TemplateQuestion[]) => {
@@ -483,6 +517,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       addCircle,
       joinCircle,
       shareEntryToCircle,
+      deleteCircle,
       profile,
       updateProfile,
       readCircleEntryIds: readIds,

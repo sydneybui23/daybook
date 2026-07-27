@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { X, ArrowLeft, PenLine, ListChecks, ScanLine, Camera, CalendarDays, Sparkles, Globe2 } from 'lucide-react'
+import { X, ArrowLeft, PenLine, ListChecks, ScanLine, Camera, CalendarDays, Sparkles, Globe2, Plus } from 'lucide-react'
 import { pickIcon } from '../lib/pickIcon'
 import { useStore } from '../lib/store'
 import { fileToCompressedDataUrl } from '../lib/imageUtils'
@@ -29,34 +29,51 @@ function DateField({ date, onDateChange }: { date: string; onDateChange: (d: str
   )
 }
 
-function DateAndPhotoHeader({
+const MAX_PHOTOS = 6
+
+function DateAndPhotosField({
   date,
   onDateChange,
-  photo,
-  onPhotoFile,
+  photos,
+  onAddFiles,
+  onRemovePhoto,
 }: {
   date: string
   onDateChange: (d: string) => void
-  photo?: string
-  onPhotoFile: (f: File) => void
+  photos: string[]
+  onAddFiles: (files: FileList) => void
+  onRemovePhoto: (index: number) => void
 }) {
   return (
-    <div className="mb-5 flex items-center gap-3">
+    <div className="mb-5 flex flex-col gap-3">
       <DateField date={date} onDateChange={onDateChange} />
-      <label className="flex shrink-0 cursor-pointer items-center gap-2 rounded-xl border border-dashed border-[var(--line)] px-3 py-2.5 text-[13px] text-[var(--ink-soft)] hover:border-[var(--accent)]">
-        {photo ? (
-          <img src={photo} alt="" className="h-5 w-5 rounded object-cover" />
-        ) : (
-          <Camera size={16} />
+      <div className="flex flex-wrap gap-2.5">
+        {photos.map((p, i) => (
+          <div key={i} className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl">
+            <img src={p} alt="" className="h-full w-full object-cover" />
+            <button
+              onClick={() => onRemovePhoto(i)}
+              aria-label="Remove photo"
+              className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white"
+            >
+              <X size={12} />
+            </button>
+          </div>
+        ))}
+        {photos.length < MAX_PHOTOS && (
+          <label className="flex h-16 w-16 shrink-0 cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-[var(--line)] text-[var(--ink-soft)] hover:border-[var(--accent)]">
+            {photos.length === 0 ? <Camera size={18} /> : <Plus size={18} />}
+            <span className="text-[10px]">{photos.length === 0 ? 'Add photo' : 'Add more'}</span>
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={(e) => e.target.files && onAddFiles(e.target.files)}
+            />
+          </label>
         )}
-        {photo ? 'Photo added' : 'Add photo'}
-        <input
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={(e) => e.target.files?.[0] && onPhotoFile(e.target.files[0])}
-        />
-      </label>
+      </div>
     </div>
   )
 }
@@ -83,7 +100,7 @@ export function NewEntryModal({
   const [freeText, setFreeText] = useState(initialSummary ?? '')
   const [answers, setAnswers] = useState<Record<string, string>>({})
   const [summary, setSummary] = useState(initialSummary ?? '')
-  const [photo, setPhoto] = useState<string | undefined>(undefined)
+  const [photos, setPhotos] = useState<string[]>([])
   const [scanning, setScanning] = useState(false)
   const [isPublic, setIsPublic] = useState(profile.shareByDefault)
 
@@ -98,21 +115,36 @@ export function NewEntryModal({
     else setStep('choose')
   }
 
-  const onPhotoFile = async (file: File) => {
-    try {
-      setPhoto(await fileToCompressedDataUrl(file))
-    } catch {
-      alert("Couldn't read that photo — try a JPEG, PNG, or screenshot.")
+  const onAddFiles = async (files: FileList) => {
+    const remaining = MAX_PHOTOS - photos.length
+    if (remaining <= 0) {
+      alert(`You can add up to ${MAX_PHOTOS} photos per entry.`)
+      return
+    }
+    for (const file of Array.from(files).slice(0, remaining)) {
+      try {
+        // smaller than the single-photo default so a full gallery still fits Firestore's ~1MB document cap
+        const url = await fileToCompressedDataUrl(file, 800, 0.6)
+        setPhotos((prev) => [...prev, url])
+      } catch {
+        alert("Couldn't read that photo — try a JPEG, PNG, or screenshot.")
+      }
     }
   }
 
+  const onRemovePhoto = (index: number) => {
+    setPhotos((prev) => prev.filter((_, i) => i !== index))
+  }
+
   const onScanFile = async (file: File) => {
+    let url: string
     try {
-      setPhoto(await fileToCompressedDataUrl(file))
+      url = await fileToCompressedDataUrl(file)
     } catch {
       alert("Couldn't read that photo — try a JPEG, PNG, or screenshot.")
       return
     }
+    setPhotos([url])
     setScanning(true)
     setTimeout(() => {
       setFreeText(MOCK_TRANSCRIPTION)
@@ -128,7 +160,8 @@ export function NewEntryModal({
       summary,
       iconId: pickIcon(summary),
       mode,
-      photo,
+      photo: photos[0],
+      photos: photos.length > 0 ? photos : undefined,
       public: isPublic,
       freeText: mode === 'free' ? freeText : undefined,
       answers: mode === 'guided' ? answers : undefined,
@@ -210,7 +243,13 @@ export function NewEntryModal({
 
           {step === 'free' && (
             <div className="flex flex-col gap-4">
-              <DateAndPhotoHeader date={entryDate} onDateChange={setEntryDate} photo={photo} onPhotoFile={onPhotoFile} />
+              <DateAndPhotosField
+                date={entryDate}
+                onDateChange={setEntryDate}
+                photos={photos}
+                onAddFiles={onAddFiles}
+                onRemovePhoto={onRemovePhoto}
+              />
               <textarea
                 autoFocus
                 value={freeText}
@@ -233,7 +272,7 @@ export function NewEntryModal({
             <div className="flex flex-col gap-4">
               <DateField date={entryDate} onDateChange={setEntryDate} />
 
-              {!photo && !scanning && (
+              {photos.length === 0 && !scanning && (
                 <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-[var(--line)] px-4 py-10 text-center hover:border-[var(--accent)]">
                   <ScanLine size={28} className="text-[var(--ink-soft)]" />
                   <span className="text-[13.5px] text-[var(--ink)]">Take or upload a photo of your handwritten page</span>
@@ -248,9 +287,9 @@ export function NewEntryModal({
                 </label>
               )}
 
-              {photo && scanning && (
+              {photos.length > 0 && scanning && (
                 <div className="flex flex-col items-center gap-3 rounded-2xl border border-[var(--line)] px-4 py-10 text-center">
-                  <img src={photo} alt="" className="h-24 w-24 rounded-xl object-cover" />
+                  <img src={photos[0]} alt="" className="h-24 w-24 rounded-xl object-cover" />
                   <div className="flex items-center gap-2 text-[13.5px] text-[var(--ink-soft)]">
                     <Sparkles size={15} className="animate-pulse text-[var(--accent)]" />
                     Transcribing your handwriting...
@@ -258,7 +297,7 @@ export function NewEntryModal({
                 </div>
               )}
 
-              {photo && !scanning && freeText && (
+              {photos.length > 0 && !scanning && freeText && (
                 <>
                   <p className="text-[12px] text-[var(--ink-soft)]">
                     Here's what AI read from your page, a mock preview for this demo. Edit anything that's off.
@@ -284,7 +323,13 @@ export function NewEntryModal({
 
           {step === 'guided' && (
             <div className="flex flex-col gap-5">
-              <DateAndPhotoHeader date={entryDate} onDateChange={setEntryDate} photo={photo} onPhotoFile={onPhotoFile} />
+              <DateAndPhotosField
+                date={entryDate}
+                onDateChange={setEntryDate}
+                photos={photos}
+                onAddFiles={onAddFiles}
+                onRemovePhoto={onRemovePhoto}
+              />
               {templateQuestions.map((q, i) => (
                 <div key={q.id}>
                   <label

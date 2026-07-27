@@ -12,6 +12,7 @@ export interface PostEntry {
   summary: string
   iconId: IconId
   photo?: string
+  photos?: string[]
   fullText?: string
   date: string
 }
@@ -33,6 +34,11 @@ export function PostCard({ entry, onOpen }: { entry: PostEntry; onOpen: (entry: 
           <img src={entry.photo} alt="" className="absolute inset-0 h-full w-full object-cover" />
         ) : (
           <div className="absolute inset-0" style={{ background: paletteColorForSeed(entry.id) }} />
+        )}
+        {(entry.photos?.length ?? 0) > 1 && (
+          <span className="absolute right-2 top-2 rounded-full bg-black/55 px-2 py-0.5 text-[11px] text-white backdrop-blur-sm">
+            +{entry.photos!.length - 1}
+          </span>
         )}
       </button>
 

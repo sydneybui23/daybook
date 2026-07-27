@@ -1,11 +1,14 @@
 import { useState } from 'react'
-import { ArrowLeft, Camera, MoreVertical, Pencil, Trash2, Share2 } from 'lucide-react'
+import { deleteField } from 'firebase/firestore'
+import { ArrowLeft, Camera, MoreVertical, Pencil, Trash2, Share2, X, Plus } from 'lucide-react'
 import { useStore } from '../lib/store'
 import { paletteColorForSeed } from '../lib/palette'
 import { fileToCompressedDataUrl } from '../lib/imageUtils'
 import { Avatar } from '../lib/avatars'
 import { CommentThread } from './CommentThread'
 import type { PostEntry } from './PostCard'
+
+const MAX_PHOTOS = 6
 
 function fullDate(dateStr: string) {
   return new Date(dateStr + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })
@@ -27,14 +30,14 @@ export function FullEntryOverlay({
   const [editing, setEditing] = useState(!!startInEdit)
   const [draftSummary, setDraftSummary] = useState(entry.summary)
   const [draftText, setDraftText] = useState(entry.fullText ?? entry.summary)
-  const [draftPhoto, setDraftPhoto] = useState(entry.photo)
+  const [draftPhotos, setDraftPhotos] = useState<string[]>(entry.photos ?? (entry.photo ? [entry.photo] : []))
 
   const canEdit = displayEntry.name === profile.name && entries.some((e) => e.id === displayEntry.id)
 
   const startEdit = () => {
     setDraftSummary(displayEntry.summary)
     setDraftText(displayEntry.fullText ?? displayEntry.summary)
-    setDraftPhoto(displayEntry.photo)
+    setDraftPhotos(displayEntry.photos ?? (displayEntry.photo ? [displayEntry.photo] : []))
     setEditing(true)
     setMenuOpen(false)
   }
@@ -68,25 +71,43 @@ export function FullEntryOverlay({
     }
   }
 
-  const onPhotoFile = async (file: File) => {
-    try {
-      setDraftPhoto(await fileToCompressedDataUrl(file))
-    } catch {
-      alert("Couldn't read that photo — try a JPEG, PNG, or screenshot.")
+  const onAddFiles = async (files: FileList) => {
+    const remaining = MAX_PHOTOS - draftPhotos.length
+    if (remaining <= 0) {
+      alert(`You can add up to ${MAX_PHOTOS} photos per entry.`)
+      return
+    }
+    for (const file of Array.from(files).slice(0, remaining)) {
+      try {
+        const url = await fileToCompressedDataUrl(file, 800, 0.6)
+        setDraftPhotos((prev) => [...prev, url])
+      } catch {
+        alert("Couldn't read that photo — try a JPEG, PNG, or screenshot.")
+      }
     }
   }
 
+  const onRemovePhoto = (index: number) => {
+    setDraftPhotos((prev) => prev.filter((_, i) => i !== index))
+  }
+
   const save = () => {
+    // a manual full-text edit turns a guided-template entry into free-form text —
+    // otherwise the old per-question answers would keep overriding it on every render
     updateEntry(displayEntry.id, {
       summary: draftSummary.trim() || displayEntry.summary,
       freeText: draftText.trim(),
-      photo: draftPhoto,
+      mode: 'free',
+      answers: deleteField(),
+      photo: draftPhotos[0] ?? deleteField(),
+      photos: draftPhotos.length > 0 ? draftPhotos : deleteField(),
     })
     setDisplayEntry((prev) => ({
       ...prev,
       summary: draftSummary.trim() || prev.summary,
       fullText: draftText.trim(),
-      photo: draftPhoto,
+      photo: draftPhotos[0],
+      photos: draftPhotos.length > 0 ? draftPhotos : undefined,
     }))
     setEditing(false)
   }
@@ -138,29 +159,54 @@ export function FullEntryOverlay({
       </div>
 
       <div className="mx-auto max-w-[480px] px-6 pb-24">
-        <div className="relative aspect-square w-full overflow-hidden rounded-2xl">
-          {(editing ? draftPhoto : displayEntry.photo) ? (
-            <img
-              src={editing ? draftPhoto : displayEntry.photo}
-              alt=""
-              className="absolute inset-0 h-full w-full object-cover"
-            />
-          ) : (
-            <div className="absolute inset-0" style={{ background: paletteColorForSeed(displayEntry.id) }} />
-          )}
-          {editing && (
-            <label className="absolute bottom-3 right-3 flex cursor-pointer items-center gap-1.5 rounded-full bg-black/60 px-3.5 py-2 text-[12.5px] text-white backdrop-blur">
-              <Camera size={14} />
-              Change photo
-              <input
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => e.target.files?.[0] && onPhotoFile(e.target.files[0])}
+        {editing ? (
+          <div className="flex flex-wrap gap-2.5">
+            {draftPhotos.map((p, i) => (
+              <div key={i} className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl">
+                <img src={p} alt="" className="h-full w-full object-cover" />
+                <button
+                  onClick={() => onRemovePhoto(i)}
+                  aria-label="Remove photo"
+                  className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white"
+                >
+                  <X size={12} />
+                </button>
+              </div>
+            ))}
+            {draftPhotos.length < MAX_PHOTOS && (
+              <label className="flex h-20 w-20 shrink-0 cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-[var(--line)] text-[var(--ink-soft)] hover:border-[var(--accent)]">
+                {draftPhotos.length === 0 ? <Camera size={20} /> : <Plus size={20} />}
+                <span className="text-[10px]">{draftPhotos.length === 0 ? 'Add photo' : 'Add more'}</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => e.target.files && onAddFiles(e.target.files)}
+                />
+              </label>
+            )}
+          </div>
+        ) : (displayEntry.photos?.length ?? 0) > 1 ? (
+          <div className="flex snap-x snap-mandatory gap-2 overflow-x-auto rounded-2xl">
+            {displayEntry.photos!.map((p, i) => (
+              <img
+                key={i}
+                src={p}
+                alt=""
+                className="aspect-square w-full shrink-0 snap-start rounded-2xl object-cover"
               />
-            </label>
-          )}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <div className="relative aspect-square w-full overflow-hidden rounded-2xl">
+            {displayEntry.photo ? (
+              <img src={displayEntry.photo} alt="" className="absolute inset-0 h-full w-full object-cover" />
+            ) : (
+              <div className="absolute inset-0" style={{ background: paletteColorForSeed(displayEntry.id) }} />
+            )}
+          </div>
+        )}
 
         <div className="flex items-center gap-3 pt-4">
           <Avatar name={displayEntry.name} color={displayEntry.color} size={38} />

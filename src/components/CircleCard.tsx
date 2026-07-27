@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { MoreVertical } from 'lucide-react'
+import { MoreVertical, Trash2 } from 'lucide-react'
 import type { Circle } from '../lib/types'
 import { paletteGradient } from '../lib/palette'
 
@@ -11,16 +11,19 @@ export function CircleCard({
   circle,
   onClick,
   onEdit,
+  onDelete,
   unreadCount,
   height = 220,
 }: {
   circle: Circle
   onClick?: () => void
   onEdit?: () => void
+  onDelete?: () => void
   unreadCount?: number
   height?: number
 }) {
   const [menuOpen, setMenuOpen] = useState(false)
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
   const background = isPhoto(circle.cover)
     ? { backgroundImage: `url(${circle.cover})`, backgroundSize: 'cover', backgroundPosition: 'center' }
     : { background: paletteGradient(circle.cover) }
@@ -41,12 +44,13 @@ export function CircleCard({
         </span>
       )}
 
-      {onEdit && (
+      {(onEdit || onDelete) && (
         <div className="absolute right-3 top-3 z-10">
           <button
             onClick={(e) => {
               e.stopPropagation()
               setMenuOpen((v) => !v)
+              setConfirmingDelete(false)
             }}
             aria-label="Circle options"
             className="flex h-8 w-8 items-center justify-center rounded-full bg-black/30 text-white backdrop-blur-sm hover:bg-black/45"
@@ -56,17 +60,35 @@ export function CircleCard({
           {menuOpen && (
             <div
               onClick={(e) => e.stopPropagation()}
-              className="absolute right-0 top-10 w-44 overflow-hidden rounded-xl bg-white py-1 shadow-[0_8px_24px_rgba(0,0,0,0.18)]"
+              className="absolute right-0 top-10 w-48 overflow-hidden rounded-xl bg-white py-1 shadow-[0_8px_24px_rgba(0,0,0,0.18)]"
             >
-              <button
-                onClick={() => {
-                  setMenuOpen(false)
-                  onEdit()
-                }}
-                className="block w-full px-4 py-2.5 text-left text-[13.5px] text-[var(--ink)] hover:bg-[var(--line-soft)]"
-              >
-                Edit circle
-              </button>
+              {onEdit && (
+                <button
+                  onClick={() => {
+                    setMenuOpen(false)
+                    onEdit()
+                  }}
+                  className="block w-full px-4 py-2.5 text-left text-[13.5px] text-[var(--ink)] hover:bg-[var(--line-soft)]"
+                >
+                  Edit circle
+                </button>
+              )}
+              {onDelete && (
+                <button
+                  onClick={() => {
+                    if (!confirmingDelete) {
+                      setConfirmingDelete(true)
+                      return
+                    }
+                    setMenuOpen(false)
+                    onDelete()
+                  }}
+                  className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-[13.5px] hover:bg-[var(--line-soft)]"
+                  style={{ color: confirmingDelete ? '#bb4e3f' : 'var(--ink)' }}
+                >
+                  <Trash2 size={13} /> {confirmingDelete ? 'Confirm delete?' : 'Delete circle'}
+                </button>
+              )}
             </div>
           )}
         </div>

@@ -33,7 +33,8 @@ export interface Entry {
   summary: string
   iconId: IconId // used only as a fallback mood tag when no photo is set
   mode: EntryMode
-  photo?: string // data URL of a user-uploaded photo for the day
+  photo?: string // data URL of a user-uploaded photo for the day (photos[0], kept for older readers)
+  photos?: string[] // full gallery of uploaded photos for the day
   freeText?: string
   answers?: Record<string, string>
   sharedCircleIds?: string[]
@@ -69,6 +70,7 @@ export interface CircleEntry {
   summary: string
   iconId: IconId
   photo?: string
+  photos?: string[]
   fullText?: string
   comments?: Comment[]
 }
