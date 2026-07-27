@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowRight, BookOpen, Camera, ChevronLeft, ChevronRight, Flame, ListChecks, Music, PenLine, PlayCircle, Sparkles } from 'lucide-react'
+import { ArrowRight, Camera, ChevronLeft, ChevronRight, Flame, ListChecks, PenLine, Sparkles } from 'lucide-react'
 import { NewEntryModal } from '../components/NewEntryModal'
 import { useStore } from '../lib/store'
 import { useAuth } from '../lib/auth'
@@ -10,10 +10,9 @@ import { YearWall } from '../components/YearWall'
 import { DailyEnvelope } from '../components/DailyEnvelope'
 import { FullEntryOverlay } from '../components/FullEntryOverlay'
 import { toPostEntry } from '../lib/entryHelpers'
-import { useDailyInspiration } from '../lib/useDailyInspiration'
 import { pickIcon } from '../lib/pickIcon'
 import { getTodayEnvelope } from '../lib/envelopeContent'
-import { paletteHex, paletteColorForSeed } from '../lib/palette'
+import { paletteColorForSeed } from '../lib/palette'
 import { fileToCompressedDataUrl } from '../lib/imageUtils'
 import type { Entry, EntryMode } from '../lib/types'
 import type { PostEntry } from '../components/PostCard'
@@ -216,7 +215,6 @@ export function Dashboard() {
 
   const recent = entries.slice(0, 6)
   const envelope = useMemo(() => getTodayEnvelope(entries), [entries])
-  const inspiration = useDailyInspiration()
 
   return (
     <div className="mx-auto max-w-5xl px-6 pb-32 pt-8">
@@ -302,109 +300,6 @@ export function Dashboard() {
               </p>
             </button>
           ))}
-        </div>
-      </section>
-
-      <section
-        className="mt-14 rounded-3xl p-6"
-        style={{ background: `color-mix(in srgb, ${paletteHex('ivoryClay')} 30%, white)` }}
-      >
-        <div className="mb-5 flex items-center gap-2">
-          <Sparkles size={16} className="text-[var(--accent)]" />
-          <h2 className="text-lg" style={{ fontFamily: 'var(--font-serif)', fontWeight: 400 }}>
-            Daily dose of inspiration
-          </h2>
-          {inspiration.fromNotion && (
-            <span className="ml-1 rounded-full bg-white px-2 py-0.5 text-[10px] uppercase tracking-[0.05em] text-[var(--ink-soft)]">
-              Synced from Notion
-            </span>
-          )}
-        </div>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <a
-            href={inspiration.scripture.url}
-            target="_blank"
-            rel="noreferrer"
-            className={`rounded-2xl bg-white p-5 shadow-[0_1px_3px_rgba(0,0,0,0.06)] ${inspiration.scripture.url ? 'hover:shadow-[0_2px_8px_rgba(0,0,0,0.1)]' : 'pointer-events-none'}`}
-          >
-            <p className="text-[11px] uppercase tracking-[0.08em] text-[var(--ink-soft)]">Scripture</p>
-            <p className="mt-2 text-[13.5px] italic leading-relaxed text-[var(--ink)]" style={{ fontFamily: 'var(--font-serif)' }}>
-              "{inspiration.scripture.verse}"
-            </p>
-            <p className="mt-2 text-[12px] text-[var(--ink-soft)]">{inspiration.scripture.reference}</p>
-          </a>
-          <a
-            href={inspiration.article.url}
-            target="_blank"
-            rel="noreferrer"
-            className={`rounded-2xl bg-white p-5 shadow-[0_1px_3px_rgba(0,0,0,0.06)] ${inspiration.article.url ? 'hover:shadow-[0_2px_8px_rgba(0,0,0,0.1)]' : 'pointer-events-none'}`}
-          >
-            <p className="text-[11px] uppercase tracking-[0.08em] text-[var(--ink-soft)]">Article</p>
-            <div className="mt-2 flex items-start gap-2">
-              <BookOpen size={16} className="mt-0.5 shrink-0 text-[var(--ink-soft)]" />
-              <div>
-                <p className="text-[14px] text-[var(--ink)]">{inspiration.article.title}</p>
-                <p className="text-[12px] text-[var(--ink-soft)]">{inspiration.article.source}</p>
-              </div>
-            </div>
-            <p className="mt-2 text-[12.5px] text-[var(--ink-soft)]">{inspiration.article.blurb}</p>
-          </a>
-          {inspiration.featuredEntry && (
-            <button
-              onClick={() =>
-                setOpenEntry({
-                  id: 'featured-today',
-                  name: inspiration.featuredEntry!.author,
-                  color: 'cabernet',
-                  summary: inspiration.featuredEntry!.summary,
-                  iconId: inspiration.featuredEntry!.iconId,
-                  date: todayStr(),
-                })
-              }
-              className="rounded-2xl bg-white p-5 text-left shadow-[0_1px_3px_rgba(0,0,0,0.06)]"
-            >
-              <p className="text-[11px] uppercase tracking-[0.08em] text-[var(--ink-soft)]">Featured entry</p>
-              <div className="mt-2 flex items-center gap-3">
-                <EntryPhoto iconId={inspiration.featuredEntry.iconId} size={40} radius="12px" />
-                <div>
-                  <p className="text-[13.5px] text-[var(--ink)]" style={{ fontFamily: 'var(--font-serif)', fontWeight: 300 }}>
-                    {inspiration.featuredEntry.summary}
-                  </p>
-                  <p className="text-[12px] text-[var(--ink-soft)]">— {inspiration.featuredEntry.author}</p>
-                </div>
-              </div>
-            </button>
-          )}
-          <a
-            href={inspiration.music.url}
-            target="_blank"
-            rel="noreferrer"
-            className={`rounded-2xl bg-white p-5 shadow-[0_1px_3px_rgba(0,0,0,0.06)] ${inspiration.music.url ? 'hover:shadow-[0_2px_8px_rgba(0,0,0,0.1)]' : 'pointer-events-none'}`}
-          >
-            <p className="text-[11px] uppercase tracking-[0.08em] text-[var(--ink-soft)]">Music</p>
-            <div className="mt-2 flex items-center gap-2">
-              <Music size={16} className="text-[var(--ink-soft)]" />
-              <div>
-                <p className="text-[14px] text-[var(--ink)]">{inspiration.music.title}</p>
-                <p className="text-[12px] text-[var(--ink-soft)]">{inspiration.music.artist}</p>
-              </div>
-            </div>
-          </a>
-          <a
-            href={inspiration.media.url}
-            target="_blank"
-            rel="noreferrer"
-            className={`rounded-2xl bg-white p-5 shadow-[0_1px_3px_rgba(0,0,0,0.06)] ${inspiration.media.url ? 'hover:shadow-[0_2px_8px_rgba(0,0,0,0.1)]' : 'pointer-events-none'}`}
-          >
-            <p className="text-[11px] uppercase tracking-[0.08em] text-[var(--ink-soft)]">Media</p>
-            <div className="mt-2 flex items-center gap-2">
-              <PlayCircle size={16} className="text-[var(--ink-soft)]" />
-              <div>
-                <p className="text-[14px] text-[var(--ink)]">{inspiration.media.title}</p>
-                <p className="text-[12px] text-[var(--ink-soft)]">{inspiration.media.kind}</p>
-              </div>
-            </div>
-          </a>
         </div>
       </section>
 

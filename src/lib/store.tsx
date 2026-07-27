@@ -25,7 +25,14 @@ type EntryPatch = { [K in keyof Entry]?: Entry[K] | FieldValue }
 function reportFailure(action: string) {
   return (err: unknown) => {
     console.error(err)
-    alert(`Couldn't ${action}. Check your connection and try again.`)
+    const code = (err as { code?: string } | null)?.code
+    const reason =
+      code === 'permission-denied'
+        ? "the app doesn't have permission to do that yet — this usually means the Firestore security rules haven't been updated in the Firebase Console"
+        : code
+          ? `something went wrong (${code})`
+          : 'check your connection and try again'
+    alert(`Couldn't ${action}. ${reason.charAt(0).toUpperCase()}${reason.slice(1)}.`)
   }
 }
 

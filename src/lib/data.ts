@@ -18,27 +18,6 @@ export const TEMPLATE_QUESTIONS: TemplateQuestion[] = [
   { id: 'goals', label: 'What goals / intentions do you have for tomorrow?' },
 ]
 
-export const INSPIRATION_TODAY = {
-  scripture: {
-    reference: 'Lamentations 3:22–23',
-    verse: 'Because of the Lord’s great love we are not consumed, for his compassions never fail. They are new every morning; great is your faithfulness.',
-  },
-  article: {
-    title: 'The Practice of Noticing',
-    source: 'On Being',
-    blurb: 'A short read on why paying attention is itself a spiritual discipline.',
-  },
-  featuredEntry: null as { author: string; summary: string; iconId: 'book' } | null,
-  music: {
-    title: 'Goodness of God',
-    artist: 'Bethel Music',
-  },
-  media: {
-    title: 'A short film on rest',
-    kind: 'Video · 6 min',
-  },
-}
-
 export const LOOKBACK_OFFSETS = [30, 60, 90, 120, 180, 365]
 
 // Short lines for the daily envelope card, in the voice of a quiet reminder

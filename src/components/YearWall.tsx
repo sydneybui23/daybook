@@ -13,7 +13,8 @@ export function YearWall({ entries, celebrateDate, cellSize }: { entries: Entry[
   const days = useMemo(() => {
     const arr: { date: string; entry?: Entry }[] = []
     const today = new Date()
-    for (let i = 364; i >= 0; i--) {
+    // most recent day first, so it lands at the start of the grid instead of the end
+    for (let i = 0; i <= 364; i++) {
       const d = new Date(today)
       d.setDate(d.getDate() - i)
       const key = d.toISOString().slice(0, 10)
