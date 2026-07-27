@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { NavLink } from 'react-router-dom'
-import { Users, Compass, NotebookText, TrendingUp, CalendarDays, UserCircle, Plus, ListTodo } from 'lucide-react'
+import { Users, Compass, NotebookText, TrendingUp, CalendarDays, UserCircle, Plus, ListTodo, Plane } from 'lucide-react'
 import { paletteHex } from '../lib/palette'
 import { useStore } from '../lib/store'
 import { NewEntryModal } from './NewEntryModal'
@@ -19,6 +19,7 @@ const LEFT_ITEMS = [
 const RIGHT_ITEMS = [
   { to: '/circles', label: 'circles', Icon: Users },
   { to: '/social', label: 'social', Icon: Compass },
+  { to: '/travel', label: 'travel', Icon: Plane },
   { to: '/profile', label: 'profile', Icon: UserCircle },
 ]
 
@@ -35,7 +36,7 @@ export function BottomNav() {
         className="fixed inset-x-0 bottom-0 z-30 border-t border-black/5 pb-[env(safe-area-inset-bottom)] lg:hidden"
         style={{ background: BAR_BG }}
       >
-        <div className="mx-auto grid max-w-5xl grid-cols-8 items-center px-1 py-2">
+        <div className="mx-auto grid max-w-5xl grid-cols-9 items-center px-1 py-2">
           {LEFT_ITEMS.map((item) => (
             <TabLink key={item.to} {...item} />
           ))}

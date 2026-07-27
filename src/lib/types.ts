@@ -57,6 +57,16 @@ export interface HabitItem {
   label: string
 }
 
+export interface TravelEntry {
+  id: string
+  country: string
+  city?: string
+  month: number // 1-12
+  year: number
+  planned: boolean // false = a trip you've taken, true = a future trip you're planning
+  notes?: string
+}
+
 export type MemberRole = 'admin' | 'member'
 
 export interface Member {

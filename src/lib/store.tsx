@@ -13,7 +13,7 @@ import {
   type FieldValue,
   type Unsubscribe,
 } from 'firebase/firestore'
-import type { Circle, CircleEntry, Comment, Entry, HabitItem, MemberRole, TemplateQuestion } from './types'
+import type { Circle, CircleEntry, Comment, Entry, HabitItem, MemberRole, TemplateQuestion, TravelEntry } from './types'
 import { DEFAULT_HABITS, TEMPLATE_QUESTIONS } from './data'
 import { detectHarm, runServerModeration, type FlagReason } from './moderation'
 import { entryBodyText } from './entryHelpers'
@@ -116,6 +116,10 @@ interface StoreValue {
   toggleHabit: (date: string, habitId: string) => void
   likedEntryIds: Set<string>
   toggleLike: (entryId: string) => void
+  travelEntries: TravelEntry[]
+  addTravelEntry: (e: Omit<TravelEntry, 'id'>) => void
+  updateTravelEntry: (id: string, patch: Partial<TravelEntry>) => void
+  deleteTravelEntry: (id: string) => void
 }
 
 const StoreContext = createContext<StoreValue | null>(null)
@@ -174,6 +178,21 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         next[d.id] = (d.data().completed as string[]) ?? []
       })
       setHabitLogs(next)
+    })
+  }, [uid])
+
+  // travel history + planned trips: users/{uid}/travel/{id}
+  const [travelEntries, setTravelEntries] = useState<TravelEntry[]>([])
+  useEffect(() => {
+    if (!uid || !db) {
+      setTravelEntries([])
+      return
+    }
+    const ref = collection(db, 'users', uid, 'travel')
+    return onSnapshot(ref, (snap) => {
+      const next = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as TravelEntry)
+      next.sort((a, b) => (a.year === b.year ? a.month - b.month : a.year - b.year))
+      setTravelEntries(next)
     })
   }, [uid])
 
@@ -608,6 +627,22 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setDoc(doc(db, 'users', uid, 'habitLogs', date), { completed: next }).catch(reportFailure('save that habit'))
   }
 
+  const addTravelEntry = (e: Omit<TravelEntry, 'id'>) => {
+    if (!uid || !db) return
+    const id = `tr-${Date.now()}`
+    setDoc(doc(db, 'users', uid, 'travel', id), e).catch(reportFailure('save that trip'))
+  }
+
+  const updateTravelEntry = (id: string, patch: Partial<TravelEntry>) => {
+    if (!uid || !db) return
+    updateDoc(doc(db, 'users', uid, 'travel', id), patch).catch(reportFailure('save that trip'))
+  }
+
+  const deleteTravelEntry = (id: string) => {
+    if (!uid || !db) return
+    deleteDoc(doc(db, 'users', uid, 'travel', id)).catch(reportFailure('delete that trip'))
+  }
+
   const value = useMemo(
     () => ({
       ready,
@@ -648,6 +683,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       toggleHabit,
       likedEntryIds,
       toggleLike,
+      travelEntries,
+      addTravelEntry,
+      updateTravelEntry,
+      deleteTravelEntry,
     }),
     [
       ready,
@@ -662,6 +701,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       habits,
       habitLogs,
       likedEntryIds,
+      travelEntries,
     ],
   )
 
