@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { deleteField } from 'firebase/firestore'
-import { ArrowLeft, Camera, MoreVertical, Pencil, Trash2, Share2, X, Plus } from 'lucide-react'
+import { ArrowLeft, Camera, ChevronLeft, ChevronRight, MoreVertical, Pencil, Trash2, Share2, X, Plus } from 'lucide-react'
 import { useStore } from '../lib/store'
 import { paletteColorForSeed } from '../lib/palette'
 import { fileToCompressedDataUrl } from '../lib/imageUtils'
@@ -12,6 +12,53 @@ const MAX_PHOTOS = 6
 
 function fullDate(dateStr: string) {
   return new Date(dateStr + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })
+}
+
+function PhotoCarousel({ photos }: { photos: string[] }) {
+  const [index, setIndex] = useState(0)
+  const clamped = Math.min(index, photos.length - 1)
+
+  return (
+    <div className="relative aspect-square w-full overflow-hidden rounded-2xl">
+      <img src={photos[clamped]} alt="" className="absolute inset-0 h-full w-full object-cover" />
+      {photos.length > 1 && (
+        <>
+          {clamped > 0 && (
+            <button
+              onClick={() => setIndex(clamped - 1)}
+              aria-label="Previous photo"
+              className="absolute left-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-black/50 text-white hover:bg-black/65"
+            >
+              <ChevronLeft size={18} />
+            </button>
+          )}
+          {clamped < photos.length - 1 && (
+            <button
+              onClick={() => setIndex(clamped + 1)}
+              aria-label="Next photo"
+              className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-black/50 text-white hover:bg-black/65"
+            >
+              <ChevronRight size={18} />
+            </button>
+          )}
+          <span className="absolute right-3 top-3 rounded-full bg-black/55 px-2 py-0.5 text-[11px] text-white backdrop-blur-sm">
+            {clamped + 1} / {photos.length}
+          </span>
+          <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 gap-1.5">
+            {photos.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setIndex(i)}
+                aria-label={`Photo ${i + 1}`}
+                className="h-1.5 w-1.5 rounded-full transition-colors"
+                style={{ background: i === clamped ? 'white' : 'rgba(255,255,255,0.45)' }}
+              />
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  )
 }
 
 export function FullEntryOverlay({
@@ -187,17 +234,8 @@ export function FullEntryOverlay({
               </label>
             )}
           </div>
-        ) : (displayEntry.photos?.length ?? 0) > 1 ? (
-          <div className="flex snap-x snap-mandatory gap-2 overflow-x-auto rounded-2xl">
-            {displayEntry.photos!.map((p, i) => (
-              <img
-                key={i}
-                src={p}
-                alt=""
-                className="aspect-square w-full shrink-0 snap-start rounded-2xl object-cover"
-              />
-            ))}
-          </div>
+        ) : (displayEntry.photos?.length ?? 0) > 0 ? (
+          <PhotoCarousel photos={displayEntry.photos!} />
         ) : (
           <div className="relative aspect-square w-full overflow-hidden rounded-2xl">
             {displayEntry.photo ? (

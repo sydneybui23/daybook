@@ -80,6 +80,7 @@ interface StoreValue {
   addCircle: (c: Omit<Circle, 'memberUids' | 'members' | 'entries'>) => void
   joinCircle: (circleId: string) => Promise<void>
   shareEntryToCircle: (circleId: string, entry: Entry) => void
+  deleteCircleEntry: (circleId: string, entryId: string) => void
   deleteCircle: (circleId: string) => void
   profile: Profile
   updateProfile: (patch: Partial<Profile>) => void
@@ -106,6 +107,8 @@ interface StoreValue {
   updateHabits: (habits: HabitItem[]) => void
   habitLogs: Record<string, string[]>
   toggleHabit: (date: string, habitId: string) => void
+  likedEntryIds: Set<string>
+  toggleLike: (entryId: string) => void
 }
 
 const StoreContext = createContext<StoreValue | null>(null)
@@ -296,6 +299,31 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     deleteDoc(doc(db, 'follows', `${uid}_${targetUid}`))
   }
 
+  // entry ids you've liked, so the heart on any post reflects your own reaction
+  const [likedEntryIds, setLikedEntryIds] = useState<Set<string>>(new Set())
+  useEffect(() => {
+    if (!uid || !db) {
+      setLikedEntryIds(new Set())
+      return
+    }
+    const q = query(collection(db, 'likes'), where('uid', '==', uid))
+    return onSnapshot(
+      q,
+      (snap) => setLikedEntryIds(new Set(snap.docs.map((d) => d.data().entryId as string))),
+      () => setLikedEntryIds(new Set()),
+    )
+  }, [uid])
+
+  const toggleLike = (entryId: string) => {
+    if (!uid || !db) return
+    const id = `${entryId}_${uid}`
+    if (likedEntryIds.has(entryId)) {
+      deleteDoc(doc(db, 'likes', id)).catch(reportFailure('remove that like'))
+    } else {
+      setDoc(doc(db, 'likes', id), { entryId, uid, createdAt: Date.now() }).catch(reportFailure('save that like'))
+    }
+  }
+
   const addEntry = (e: Entry) => {
     if (!uid || !db) return
     const database = db
@@ -357,6 +385,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }).catch(reportFailure('share that entry to the circle'))
   }
 
+  const deleteCircleEntry = (circleId: string, entryId: string) => {
+    if (!uid || !db) return
+    deleteDoc(doc(db, 'circles', circleId, 'entries', entryId)).catch(reportFailure('delete that shared entry'))
+  }
+
   const deleteCircle = (circleId: string) => {
     if (!uid || !db) return
     const database = db
@@ -400,7 +433,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }
 
   // targetId is a personal entry id, a circle-entry id, or a circle id (general chat bucket)
-  const locate = (targetId: string): { kind: 'personal'; entry: Entry } | { kind: 'circleEntry'; circleId: string; entry: CircleEntry } | { kind: 'chat'; circleId: string } | null => {
+  const locate = (
+    targetId: string,
+  ):
+    | { kind: 'personal'; entry: Entry }
+    | { kind: 'circleEntry'; circleId: string; entry: CircleEntry }
+    | { kind: 'chat'; circleId: string }
+    | { kind: 'public'; ownerUid: string; entry: ExplorePost }
+    | null => {
     const personal = entries.find((e) => e.id === targetId)
     if (personal) return { kind: 'personal', entry: personal }
     for (const c of circles) {
@@ -408,6 +448,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       const ce = c.entries.find((e) => e.id === targetId)
       if (ce) return { kind: 'circleEntry', circleId: c.id, entry: ce }
     }
+    const publicPost = explorePublicPosts.find((p) => p.id === targetId)
+    if (publicPost) return { kind: 'public', ownerUid: publicPost.ownerUid, entry: publicPost }
     return null
   }
 
@@ -416,6 +458,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (!loc) return []
     if (loc.kind === 'personal') return loc.entry.comments ?? []
     if (loc.kind === 'circleEntry') return loc.entry.comments ?? []
+    if (loc.kind === 'public') return loc.entry.comments ?? []
     return circleChats[loc.circleId] ?? []
   }
 
@@ -427,6 +470,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       updateDoc(doc(db, 'users', uid, 'entries', targetId), { comments: next }).catch(reportFailure('save that comment'))
     } else if (loc.kind === 'circleEntry') {
       updateDoc(doc(db, 'circles', loc.circleId, 'entries', targetId), { comments: next }).catch(reportFailure('save that comment'))
+    } else if (loc.kind === 'public') {
+      updateDoc(doc(db, 'users', loc.ownerUid, 'entries', targetId), { comments: next }).catch(reportFailure('save that comment'))
     } else {
       setDoc(doc(db, 'circles', loc.circleId, 'meta', 'chat'), { messages: next }).catch(reportFailure('save that message'))
     }
@@ -479,6 +524,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         const next = chat.map((m) => (m.id === commentId ? { ...m, ...patch } : m))
         writeComments(c.id, next)
         return { targetId: c.id, comment: next.find((m) => m.id === commentId)! }
+      }
+    }
+    for (const p of explorePublicPosts) {
+      if (p.comments?.some((c) => c.id === commentId)) {
+        const next = p.comments.map((c) => (c.id === commentId ? { ...c, ...patch } : c))
+        writeComments(p.id, next)
+        return { targetId: p.id, comment: next.find((c) => c.id === commentId)! }
       }
     }
     return null
@@ -560,6 +612,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       addCircle,
       joinCircle,
       shareEntryToCircle,
+      deleteCircleEntry,
       deleteCircle,
       profile,
       updateProfile,
@@ -586,8 +639,23 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       updateHabits,
       habitLogs,
       toggleHabit,
+      likedEntryIds,
+      toggleLike,
     }),
-    [ready, entries, circles, profile, readIds, templateQuestions, explorePublicPosts, followingUids, uid, habits, habitLogs],
+    [
+      ready,
+      entries,
+      circles,
+      profile,
+      readIds,
+      templateQuestions,
+      explorePublicPosts,
+      followingUids,
+      uid,
+      habits,
+      habitLogs,
+      likedEntryIds,
+    ],
   )
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>

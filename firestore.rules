@@ -9,6 +9,10 @@ service cloud.firestore {
         allow read, write: if request.auth != null && request.auth.uid == uid;
         // lets the public Explore feed find entries marked public across every account
         allow read: if request.auth != null && resource.data.public == true;
+        // lets anyone react/comment on a public entry, but only touch the comments field —
+        // every other field (summary, photo, public flag, etc.) stays owner-only
+        allow update: if request.auth != null && resource.data.public == true &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['comments']);
       }
 
       // Daily habit tracker: one doc per date holding which habits you checked off.
@@ -45,6 +49,15 @@ service cloud.firestore {
       allow read: if request.auth != null;
       allow create: if request.auth != null && request.auth.uid == request.resource.data.followerUid;
       allow delete: if request.auth != null && request.auth.uid == resource.data.followerUid;
+    }
+
+    // A "like" is its own doc (id: "{entryId}_{uid}") so any post's like count
+    // can be queried without needing write access to its owner's entry doc.
+    // Readable by any signed-in user; only the liker themselves can create or remove it.
+    match /likes/{likeId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.uid;
+      allow delete: if request.auth != null && request.auth.uid == resource.data.uid;
     }
   }
 }

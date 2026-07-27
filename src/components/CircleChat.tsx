@@ -26,7 +26,7 @@ type TimelineItem =
   | { kind: 'entry'; ts: number; entry: CircleEntry }
   | { kind: 'message'; ts: number; message: Comment }
 
-function DeleteMessageButton({ onDelete }: { onDelete: () => void }) {
+function DeleteMessageButton({ onDelete, light, label = 'Delete message' }: { onDelete: () => void; light?: boolean; label?: string }) {
   const [confirming, setConfirming] = useState(false)
   return (
     <button
@@ -38,16 +38,23 @@ function DeleteMessageButton({ onDelete }: { onDelete: () => void }) {
         onDelete()
       }}
       onBlur={() => setConfirming(false)}
-      aria-label="Delete message"
-      className="text-[var(--ink-soft)] hover:text-[var(--accent)]"
+      aria-label={label}
+      className={light ? 'text-white/70 hover:text-white' : 'text-[var(--ink-soft)] hover:text-[var(--ink)]'}
     >
-      {confirming ? <span className="text-[10px]" style={{ color: '#bb4e3f' }}>Confirm delete?</span> : <Trash2 size={11} />}
+      {confirming ? <span className="text-[10px]" style={{ color: light ? '#fff' : '#bb4e3f' }}>Confirm delete?</span> : <Trash2 size={11} />}
     </button>
   )
 }
 
+function MemberAvatar({ name, color, photo, size }: { name: string; color: string; photo?: string; size: number }) {
+  if (photo) {
+    return <img src={photo} alt="" className="shrink-0 rounded-full object-cover" style={{ width: size, height: size }} />
+  }
+  return <Avatar name={name} color={color} size={size} />
+}
+
 export function CircleChat({ circle }: { circle: Circle }) {
-  const { profile, commentsFor, addComment, deleteComment } = useStore()
+  const { profile, commentsFor, addComment, deleteComment, deleteCircleEntry } = useStore()
   const { user } = useAuth()
   const [replyTo, setReplyTo] = useState<CircleEntry | null>(null)
   const [text, setText] = useState('')
@@ -55,10 +62,18 @@ export function CircleChat({ circle }: { circle: Circle }) {
 
   const groupMessages = commentsFor(circle.id)
 
+  const photoFor = (name: string, isMe: boolean) =>
+    isMe ? profile.photo : circle.members.find((m) => m.name === name)?.photo
+
   const resolveAuthor = (e: CircleEntry) => {
     const isMe = e.memberId === user?.uid
     const member = circle.members.find((m) => m.id === e.memberId)
-    return { name: isMe ? profile.name : member?.name ?? 'Member', color: isMe ? 'persianRed' : member?.color ?? 'oliveShadow', isMe }
+    return {
+      name: isMe ? profile.name : member?.name ?? 'Member',
+      color: isMe ? 'persianRed' : member?.color ?? 'oliveShadow',
+      photo: isMe ? profile.photo : member?.photo,
+      isMe,
+    }
   }
 
   const timeline = useMemo<TimelineItem[]>(() => {
@@ -108,29 +123,32 @@ export function CircleChat({ circle }: { circle: Circle }) {
           if (item.kind === 'message') {
             const m = item.message
             const isMe = m.author === profile.name
+            const photo = photoFor(m.author, isMe)
             return (
               <div key={m.id} className={`flex gap-3 ${isMe ? 'flex-row-reverse' : ''}`}>
                 {isMe ? (
-                  <Avatar name={m.author} color={m.authorColor} size={34} />
+                  <MemberAvatar name={m.author} color={m.authorColor} photo={photo} size={34} />
                 ) : (
                   <Link to={`/people/${encodeURIComponent(m.author)}`}>
-                    <Avatar name={m.author} color={m.authorColor} size={34} />
+                    <MemberAvatar name={m.author} color={m.authorColor} photo={photo} size={34} />
                   </Link>
                 )}
                 <div className={`flex min-w-0 flex-1 flex-col ${isMe ? 'items-end' : 'items-start'}`}>
                   <div
                     className={`max-w-[380px] rounded-2xl border p-3.5 ${
-                      isMe
-                        ? 'rounded-tr-sm border-[var(--accent)]/25 bg-[var(--accent-soft)]'
-                        : 'rounded-tl-sm border-[var(--line)] bg-white'
+                      isMe ? 'rounded-tr-sm border-transparent bg-[var(--ink)]' : 'rounded-tl-sm border-[var(--line)] bg-white'
                     }`}
                   >
                     {m.sticker ? (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-1 text-[12px] text-[var(--accent)]">
+                      <span
+                        className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[12px] ${
+                          isMe ? 'bg-white/15 text-white' : 'bg-[var(--line-soft)] text-[var(--ink)]'
+                        }`}
+                      >
                         <Heart size={11} /> {m.text}
                       </span>
                     ) : (
-                      <p className="text-[13.5px] leading-relaxed text-[var(--ink)]">{m.text}</p>
+                      <p className={`text-[13.5px] leading-relaxed ${isMe ? 'text-white' : 'text-[var(--ink)]'}`}>{m.text}</p>
                     )}
                   </div>
                   <div className="mt-1 flex items-center gap-2">
@@ -163,23 +181,21 @@ export function CircleChat({ circle }: { circle: Circle }) {
           return (
             <div key={e.id} className={`flex gap-3 ${author.isMe ? 'flex-row-reverse' : ''}`}>
               {author.isMe ? (
-                <Avatar name={author.name} color={author.color} size={34} />
+                <MemberAvatar name={author.name} color={author.color} photo={author.photo} size={34} />
               ) : (
                 <Link to={`/people/${encodeURIComponent(author.name)}`}>
-                  <Avatar name={author.name} color={author.color} size={34} />
+                  <MemberAvatar name={author.name} color={author.color} photo={author.photo} size={34} />
                 </Link>
               )}
               <div className={`flex min-w-0 flex-1 flex-col ${author.isMe ? 'items-end' : 'items-start'}`}>
                 <div
                   className={`max-w-[380px] rounded-2xl border p-4 ${
-                    author.isMe
-                      ? 'rounded-tr-sm border-[var(--accent)]/25 bg-[var(--accent-soft)]'
-                      : 'rounded-tl-sm border-[var(--line)] bg-white'
+                    author.isMe ? 'rounded-tr-sm border-transparent bg-[var(--ink)]' : 'rounded-tl-sm border-[var(--line)] bg-white'
                   }`}
                 >
                   <div className={`mb-1.5 flex items-baseline gap-2 ${author.isMe ? 'flex-row-reverse' : ''}`}>
                     {author.isMe ? (
-                      <p className="text-[13.5px] font-medium text-[var(--ink)]">You</p>
+                      <p className="text-[13.5px] font-medium text-white">You</p>
                     ) : (
                       <Link
                         to={`/people/${encodeURIComponent(author.name)}`}
@@ -188,7 +204,7 @@ export function CircleChat({ circle }: { circle: Circle }) {
                         {author.name}
                       </Link>
                     )}
-                    <p className="text-[11px] text-[var(--ink-soft)]">{timeLabel(e.date)}</p>
+                    <p className={`text-[11px] ${author.isMe ? 'text-white/60' : 'text-[var(--ink-soft)]'}`}>{timeLabel(e.date)}</p>
                   </div>
                   <button onClick={() => openFull(e)} className="block w-full text-left">
                     {e.photo ? (
@@ -200,7 +216,7 @@ export function CircleChat({ circle }: { circle: Circle }) {
                       />
                     )}
                     <p
-                      className="text-[14.5px] leading-relaxed text-[var(--ink)]"
+                      className={`text-[14.5px] leading-relaxed ${author.isMe ? 'text-white' : 'text-[var(--ink)]'}`}
                       style={{ fontFamily: 'var(--font-serif)', fontWeight: 300 }}
                     >
                       {e.fullText ?? e.summary}
@@ -209,65 +225,76 @@ export function CircleChat({ circle }: { circle: Circle }) {
 
                   <div
                     className={`mt-2.5 flex items-center gap-4 border-t pt-2.5 ${
-                      author.isMe ? 'flex-row-reverse border-[var(--accent)]/20' : 'border-[var(--line)]'
+                      author.isMe ? 'flex-row-reverse border-white/20' : 'border-[var(--line)]'
                     }`}
                   >
                     <button
                       onClick={() => setReplyTo(e)}
-                      className="flex items-center gap-1 text-[12px] text-[var(--ink-soft)] hover:text-[var(--accent)]"
+                      className={`flex items-center gap-1 text-[12px] ${
+                        author.isMe ? 'text-white/70 hover:text-white' : 'text-[var(--ink-soft)] hover:text-[var(--accent)]'
+                      }`}
                     >
                       <Reply size={13} /> Reply to this entry
                     </button>
                     <button
                       onClick={() => openFull(e)}
-                      className="flex items-center gap-1 text-[12px] text-[var(--ink-soft)] hover:text-[var(--accent)]"
+                      className={`flex items-center gap-1 text-[12px] ${
+                        author.isMe ? 'text-white/70 hover:text-white' : 'text-[var(--ink-soft)] hover:text-[var(--accent)]'
+                      }`}
                     >
                       <MessageCircle size={13} /> {replies.length > 0 ? `${replies.length} comment${replies.length > 1 ? 's' : ''}` : 'Comment'}
                     </button>
+                    {author.isMe && (
+                      <DeleteMessageButton light label="Remove from circle" onDelete={() => deleteCircleEntry(circle.id, e.id)} />
+                    )}
                   </div>
                 </div>
 
                 {replies.length > 0 && (
                   <div className="mt-2 flex max-w-[380px] flex-col gap-2 border-l border-[var(--line)] pl-4">
-                    {replies.map((c) => (
-                      <div key={c.id} className="flex items-start gap-2">
-                        {c.author === profile.name ? (
-                          <Avatar name={c.author} color={c.authorColor} size={22} />
-                        ) : (
-                          <Link to={`/people/${encodeURIComponent(c.author)}`}>
-                            <Avatar name={c.author} color={c.authorColor} size={22} />
-                          </Link>
-                        )}
-                        <div className="min-w-0">
-                          {c.sticker ? (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-[var(--accent-soft)] px-2.5 py-1 text-[11.5px] text-[var(--accent)]">
-                              <Heart size={11} /> {c.text}
-                            </span>
+                    {replies.map((c) => {
+                      const isMyReply = c.author === profile.name
+                      const replyPhoto = photoFor(c.author, isMyReply)
+                      return (
+                        <div key={c.id} className="flex items-start gap-2">
+                          {isMyReply ? (
+                            <MemberAvatar name={c.author} color={c.authorColor} photo={replyPhoto} size={22} />
                           ) : (
-                            <p className="text-[13px] text-[var(--ink)]">
-                              {c.author === profile.name ? (
-                                <span className="font-medium">{c.author}</span>
-                              ) : (
-                                <Link to={`/people/${encodeURIComponent(c.author)}`} className="font-medium hover:text-[var(--accent)] hover:underline">
-                                  {c.author}
-                                </Link>
-                              )}{' '}
-                              {c.text}
-                            </p>
+                            <Link to={`/people/${encodeURIComponent(c.author)}`}>
+                              <MemberAvatar name={c.author} color={c.authorColor} photo={replyPhoto} size={22} />
+                            </Link>
                           )}
-                          <div className="mt-0.5 flex items-center gap-2">
-                            <p className="text-[10px] text-[var(--ink-soft)]">{timeAgo(c.createdAt)} ago</p>
-                            {c.author === profile.name ? (
-                              <DeleteMessageButton onDelete={() => deleteComment(e.id, c.id)} />
-                            ) : c.moderationStatus === 'pending' ? (
-                              <span className="text-[10px] text-[var(--accent)]">Under review</span>
+                          <div className="min-w-0">
+                            {c.sticker ? (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-[var(--line-soft)] px-2.5 py-1 text-[11.5px] text-[var(--ink)]">
+                                <Heart size={11} /> {c.text}
+                              </span>
                             ) : (
-                              !c.sticker && <ReportButton entryId={e.id} commentId={c.id} />
+                              <p className="text-[13px] text-[var(--ink)]">
+                                {isMyReply ? (
+                                  <span className="font-medium">{c.author}</span>
+                                ) : (
+                                  <Link to={`/people/${encodeURIComponent(c.author)}`} className="font-medium hover:text-[var(--accent)] hover:underline">
+                                    {c.author}
+                                  </Link>
+                                )}{' '}
+                                {c.text}
+                              </p>
                             )}
+                            <div className="mt-0.5 flex items-center gap-2">
+                              <p className="text-[10px] text-[var(--ink-soft)]">{timeAgo(c.createdAt)} ago</p>
+                              {isMyReply ? (
+                                <DeleteMessageButton onDelete={() => deleteComment(e.id, c.id)} />
+                              ) : c.moderationStatus === 'pending' ? (
+                                <span className="text-[10px] text-[var(--accent)]">Under review</span>
+                              ) : (
+                                !c.sticker && <ReportButton entryId={e.id} commentId={c.id} />
+                              )}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 )}
               </div>

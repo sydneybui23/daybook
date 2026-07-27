@@ -1,8 +1,9 @@
-import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Heart, MessageCircle, Repeat2, Send } from 'lucide-react'
+import { Heart, MessageCircle } from 'lucide-react'
 import { paletteColorForSeed } from '../lib/palette'
 import { Avatar } from '../lib/avatars'
+import { useStore } from '../lib/store'
+import { useLikeCount } from '../lib/useLikeCount'
 import type { IconId } from '../lib/types'
 
 export interface PostEntry {
@@ -22,7 +23,9 @@ function fullDate(dateStr: string) {
 }
 
 export function PostCard({ entry, onOpen }: { entry: PostEntry; onOpen: (entry: PostEntry) => void }) {
-  const [liked, setLiked] = useState(false)
+  const { likedEntryIds, toggleLike } = useStore()
+  const liked = likedEntryIds.has(entry.id)
+  const likeCount = useLikeCount(entry.id)
 
   return (
     <article className="mx-auto flex w-full max-w-[260px] flex-col">
@@ -50,18 +53,13 @@ export function PostCard({ entry, onOpen }: { entry: PostEntry; onOpen: (entry: 
         </div>
       </Link>
 
-      <div className="flex items-center gap-3 px-1 pt-2 text-[var(--ink)]">
-        <button onClick={() => setLiked((v) => !v)} aria-label="Like">
+      <div className="flex items-center gap-4 px-1 pt-2 text-[var(--ink)]">
+        <button onClick={() => toggleLike(entry.id)} aria-label={liked ? 'Unlike' : 'Like'} className="flex items-center gap-1.5">
           <Heart size={17} strokeWidth={1.8} fill={liked ? 'var(--accent)' : 'none'} color={liked ? 'var(--accent)' : 'currentColor'} />
+          {!!likeCount && <span className="text-[12px] text-[var(--ink-soft)]">{likeCount}</span>}
         </button>
         <button onClick={() => onOpen(entry)} aria-label="Comment">
           <MessageCircle size={17} strokeWidth={1.8} />
-        </button>
-        <button aria-label="Reshare">
-          <Repeat2 size={18} strokeWidth={1.8} />
-        </button>
-        <button aria-label="Send">
-          <Send size={15} strokeWidth={1.8} />
         </button>
       </div>
 
