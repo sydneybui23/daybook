@@ -1,22 +1,14 @@
-// A stylized, non-cartographic world map: continents are drawn as soft rounded
-// regions positioned by their real bounding lat/lng box (not traced coastlines),
-// while every pin is placed with an accurate equirectangular projection. Good
-// enough to see "where in the world" at a glance without shipping full map data.
+import { WORLD_LAND_PATH } from '../lib/worldLandPath'
+
+// Real coastlines (Natural Earth 110m land polygons via world-atlas), projected
+// with a simple equirectangular projection into a 1000x500 viewBox. Pins use the
+// same projection as plain percentages, so they line up with the map exactly.
 export interface MapPin {
   id: string
   lat: number
   lng: number
   label: string
 }
-
-const CONTINENTS: { left: number; top: number; width: number; height: number }[] = [
-  { left: 2.8, top: 8.3, width: 33.3, height: 33.3 }, // North America
-  { left: 26.4, top: 43.3, width: 13.9, height: 37.2 }, // South America
-  { left: 47.2, top: 11.1, width: 13.9, height: 19.4 }, // Europe
-  { left: 44.4, top: 29.4, width: 19.4, height: 40 }, // Africa
-  { left: 61.1, top: 8.3, width: 30.6, height: 38.9 }, // Asia
-  { left: 80.6, top: 55.6, width: 12.5, height: 19.4 }, // Australia
-]
 
 function project(lat: number, lng: number) {
   return {
@@ -38,21 +30,17 @@ export function WorldMap({ pins }: { pins: MapPin[] }) {
   return (
     <div
       className="relative w-full overflow-hidden rounded-2xl border border-[var(--line)]"
-      style={{ aspectRatio: '2 / 1', background: 'var(--line-soft)' }}
+      style={{ aspectRatio: '2 / 1', background: 'color-mix(in srgb, var(--accent) 6%, white)' }}
     >
-      {CONTINENTS.map((c, i) => (
-        <div
-          key={i}
-          className="absolute rounded-[38%]"
-          style={{
-            left: `${c.left}%`,
-            top: `${c.top}%`,
-            width: `${c.width}%`,
-            height: `${c.height}%`,
-            background: 'color-mix(in srgb, var(--accent) 16%, white)',
-          }}
+      <svg viewBox="0 0 1000 500" preserveAspectRatio="none" className="absolute inset-0 h-full w-full">
+        <path
+          d={WORLD_LAND_PATH}
+          fillRule="evenodd"
+          fill="color-mix(in srgb, var(--accent) 22%, white)"
+          stroke="color-mix(in srgb, var(--accent) 45%, white)"
+          strokeWidth={0.6}
         />
-      ))}
+      </svg>
       {pins.map((p) => {
         const { x, y } = project(p.lat, p.lng)
         const { dx, dy } = jitter(p.id)
@@ -70,7 +58,7 @@ export function WorldMap({ pins }: { pins: MapPin[] }) {
         )
       })}
       {pins.length === 0 && (
-        <p className="absolute inset-0 flex items-center justify-center px-6 text-center text-[13px] text-[var(--ink-soft)]">
+        <p className="pointer-events-none absolute inset-x-0 bottom-3 text-center text-[13px] text-[var(--ink-soft)]">
           Add a trip below to see it on the map.
         </p>
       )}

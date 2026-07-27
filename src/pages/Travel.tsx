@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { deleteField } from 'firebase/firestore'
-import { Plane, MapPin, Plus, Trash2, Pencil, Camera, X } from 'lucide-react'
+import { Plane, MapPin, Plus, Trash2, Pencil, Camera, X, CheckCircle } from 'lucide-react'
 import { useStore } from '../lib/store'
 import { fileToCompressedDataUrl } from '../lib/imageUtils'
 import { COUNTRIES } from '../lib/countries'
@@ -236,11 +236,8 @@ export function Travel() {
   )
 
   const sorted = useMemo(
-    () =>
-      [...filtered].sort((a, b) =>
-        planning ? (a.year === b.year ? a.month - b.month : a.year - b.year) : b.year === a.year ? b.month - a.month : b.year - a.year,
-      ),
-    [filtered, planning],
+    () => [...filtered].sort((a, b) => (a.year === b.year ? a.month - b.month : a.year - b.year)),
+    [filtered],
   )
 
   const pins: Pin[] = useMemo(
@@ -340,6 +337,16 @@ export function Travel() {
                   {t.notes ? ` · ${t.notes}` : ''}
                 </p>
               </div>
+              {t.planned && (
+                <button
+                  onClick={() => updateTravelEntry(t.id, { planned: false })}
+                  aria-label="Mark as visited"
+                  title="Mark as visited"
+                  className="shrink-0 text-[var(--ink-soft)] hover:text-[var(--accent)]"
+                >
+                  <CheckCircle size={15} />
+                </button>
+              )}
               <button
                 onClick={() => setEditingId(t.id)}
                 aria-label="Edit trip"
