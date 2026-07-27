@@ -89,6 +89,7 @@ interface StoreValue {
   markCircleRead: (circleId: string) => void
   commentsFor: (targetId: string) => Comment[]
   addComment: (targetId: string, comment: Omit<Comment, 'id' | 'createdAt'>) => void
+  deleteComment: (targetId: string, commentId: string) => void
   updateCircle: (circleId: string, patch: Partial<Pick<Circle, 'name' | 'description' | 'cover'>>) => void
   removeMember: (circleId: string, memberId: string) => void
   updateMemberRole: (circleId: string, memberId: string, role: MemberRole) => void
@@ -423,11 +424,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const loc = locate(targetId)
     if (!loc) return
     if (loc.kind === 'personal') {
-      updateDoc(doc(db, 'users', uid, 'entries', targetId), { comments: next })
+      updateDoc(doc(db, 'users', uid, 'entries', targetId), { comments: next }).catch(reportFailure('save that comment'))
     } else if (loc.kind === 'circleEntry') {
-      updateDoc(doc(db, 'circles', loc.circleId, 'entries', targetId), { comments: next })
+      updateDoc(doc(db, 'circles', loc.circleId, 'entries', targetId), { comments: next }).catch(reportFailure('save that comment'))
     } else {
-      setDoc(doc(db, 'circles', loc.circleId, 'meta', 'chat'), { messages: next })
+      setDoc(doc(db, 'circles', loc.circleId, 'meta', 'chat'), { messages: next }).catch(reportFailure('save that message'))
     }
   }
 
@@ -452,6 +453,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         }
       })
     }
+  }
+
+  const deleteComment = (targetId: string, commentId: string) => {
+    writeComments(targetId, commentsFor(targetId).filter((c) => c.id !== commentId))
   }
 
   const patchCommentEverywhere = (commentId: string, patch: Partial<Comment>): { targetId: string; comment: Comment } | null => {
@@ -564,6 +569,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       markCircleRead,
       commentsFor,
       addComment,
+      deleteComment,
       updateCircle,
       removeMember,
       updateMemberRole,

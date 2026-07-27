@@ -290,7 +290,7 @@ export function Dashboard() {
             <button
               key={e.id}
               onClick={() => openPersonalEntry(e)}
-              className="flex w-40 shrink-0 flex-col items-center rounded-2xl border border-[var(--line)] p-5 text-center"
+              className="flex w-40 shrink-0 flex-col items-start rounded-2xl border border-[var(--line)] p-5 text-left"
             >
               <EntryPhoto photo={e.photo} iconId={e.iconId} seed={e.id} size={64} radius="16px" />
               <p className="mt-3 text-[11px] uppercase tracking-[0.06em] text-[var(--ink-soft)]">{fmt(e.date)}</p>

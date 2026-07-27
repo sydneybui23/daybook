@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Send, Reply, X, Heart, MessageCircle } from 'lucide-react'
+import { Send, Reply, X, Heart, MessageCircle, Trash2 } from 'lucide-react'
 import { useStore, type Comment } from '../lib/store'
 import { useAuth } from '../lib/auth'
 import { Avatar } from '../lib/avatars'
@@ -26,8 +26,28 @@ type TimelineItem =
   | { kind: 'entry'; ts: number; entry: CircleEntry }
   | { kind: 'message'; ts: number; message: Comment }
 
+function DeleteMessageButton({ onDelete }: { onDelete: () => void }) {
+  const [confirming, setConfirming] = useState(false)
+  return (
+    <button
+      onClick={() => {
+        if (!confirming) {
+          setConfirming(true)
+          return
+        }
+        onDelete()
+      }}
+      onBlur={() => setConfirming(false)}
+      aria-label="Delete message"
+      className="text-[var(--ink-soft)] hover:text-[var(--accent)]"
+    >
+      {confirming ? <span className="text-[10px]" style={{ color: '#bb4e3f' }}>Confirm delete?</span> : <Trash2 size={11} />}
+    </button>
+  )
+}
+
 export function CircleChat({ circle }: { circle: Circle }) {
-  const { profile, commentsFor, addComment } = useStore()
+  const { profile, commentsFor, addComment, deleteComment } = useStore()
   const { user } = useAuth()
   const [replyTo, setReplyTo] = useState<CircleEntry | null>(null)
   const [text, setText] = useState('')
@@ -124,7 +144,9 @@ export function CircleChat({ circle }: { circle: Circle }) {
                       )}{' '}
                       · {timeAgo(m.createdAt)} ago
                     </p>
-                    {m.moderationStatus === 'pending' ? (
+                    {isMe ? (
+                      <DeleteMessageButton onDelete={() => deleteComment(circle.id, m.id)} />
+                    ) : m.moderationStatus === 'pending' ? (
                       <span className="text-[10.5px] text-[var(--accent)]">Under review</span>
                     ) : (
                       !m.sticker && <ReportButton entryId={circle.id} commentId={m.id} />
@@ -235,7 +257,9 @@ export function CircleChat({ circle }: { circle: Circle }) {
                           )}
                           <div className="mt-0.5 flex items-center gap-2">
                             <p className="text-[10px] text-[var(--ink-soft)]">{timeAgo(c.createdAt)} ago</p>
-                            {c.moderationStatus === 'pending' ? (
+                            {c.author === profile.name ? (
+                              <DeleteMessageButton onDelete={() => deleteComment(e.id, c.id)} />
+                            ) : c.moderationStatus === 'pending' ? (
                               <span className="text-[10px] text-[var(--accent)]">Under review</span>
                             ) : (
                               !c.sticker && <ReportButton entryId={e.id} commentId={c.id} />
