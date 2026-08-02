@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { X, ArrowLeft, PenLine, ListChecks, ScanLine, Camera, CalendarDays, Sparkles, Globe2, Plus } from 'lucide-react'
 import { pickIcon } from '../lib/pickIcon'
 import { useStore } from '../lib/store'
 import { fileToCompressedDataUrl } from '../lib/imageUtils'
+import { RichTextToolbar } from './RichTextToolbar'
 import type { Entry, EntryMode } from '../lib/types'
 
 type Step = 'choose' | 'free' | 'guided' | 'scan' | 'summarize'
@@ -103,6 +104,8 @@ export function NewEntryModal({
   const [photos, setPhotos] = useState<string[]>([])
   const [scanning, setScanning] = useState(false)
   const [isPublic, setIsPublic] = useState(profile.shareByDefault)
+  const freeTextRef = useRef<HTMLTextAreaElement>(null)
+  const scanTextRef = useRef<HTMLTextAreaElement>(null)
 
   const goSummarize = () => {
     if (mode === 'free') setSummary(freeText.split(/(?<=[.!?])\s/)[0] ?? freeText)
@@ -250,14 +253,18 @@ export function NewEntryModal({
                 onAddFiles={onAddFiles}
                 onRemovePhoto={onRemovePhoto}
               />
-              <textarea
-                autoFocus
-                value={freeText}
-                onChange={(e) => setFreeText(e.target.value)}
-                placeholder="Today..."
-                rows={10}
-                className="w-full resize-none rounded-xl border border-[var(--line)] p-4 text-[15px] leading-relaxed outline-none focus:border-[var(--accent)]"
-              />
+              <div>
+                <RichTextToolbar textareaRef={freeTextRef} value={freeText} onChange={setFreeText} />
+                <textarea
+                  ref={freeTextRef}
+                  autoFocus
+                  value={freeText}
+                  onChange={(e) => setFreeText(e.target.value)}
+                  placeholder="Today..."
+                  rows={10}
+                  className="w-full resize-none rounded-xl border border-[var(--line)] p-4 text-[15px] leading-relaxed outline-none focus:border-[var(--accent)]"
+                />
+              </div>
               <button
                 disabled={!freeText.trim()}
                 onClick={goSummarize}
@@ -302,7 +309,9 @@ export function NewEntryModal({
                   <p className="text-[12px] text-[var(--ink-soft)]">
                     Here's what AI read from your page, a mock preview for this demo. Edit anything that's off.
                   </p>
+                  <RichTextToolbar textareaRef={scanTextRef} value={freeText} onChange={setFreeText} />
                   <textarea
+                    ref={scanTextRef}
                     autoFocus
                     value={freeText}
                     onChange={(e) => setFreeText(e.target.value)}

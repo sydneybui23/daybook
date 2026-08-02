@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { deleteField } from 'firebase/firestore'
 import { ArrowLeft, Camera, ChevronLeft, ChevronRight, MoreVertical, Pencil, Trash2, Share2, X, Plus } from 'lucide-react'
 import { useStore } from '../lib/store'
@@ -6,6 +6,8 @@ import { paletteColorForSeed } from '../lib/palette'
 import { fileToCompressedDataUrl } from '../lib/imageUtils'
 import { Avatar } from '../lib/avatars'
 import { CommentThread } from './CommentThread'
+import { RichTextToolbar } from './RichTextToolbar'
+import { RichText, stripMarkdown } from '../lib/richText'
 import type { PostEntry } from './PostCard'
 
 const MAX_PHOTOS = 6
@@ -78,6 +80,7 @@ export function FullEntryOverlay({
   const [draftSummary, setDraftSummary] = useState(entry.summary)
   const [draftText, setDraftText] = useState(entry.fullText ?? entry.summary)
   const [draftPhotos, setDraftPhotos] = useState<string[]>(entry.photos ?? (entry.photo ? [entry.photo] : []))
+  const draftTextRef = useRef<HTMLTextAreaElement>(null)
 
   const canEdit = displayEntry.name === profile.name && entries.some((e) => e.id === displayEntry.id)
 
@@ -101,7 +104,7 @@ export function FullEntryOverlay({
 
   const shareOutside = async () => {
     setMenuOpen(false)
-    const text = `${displayEntry.fullText ?? displayEntry.summary}\n\n— written in daybook, ${fullDate(displayEntry.date)}`
+    const text = `${stripMarkdown(displayEntry.fullText ?? displayEntry.summary)}\n\n— written in daybook, ${fullDate(displayEntry.date)}`
     if (navigator.share) {
       try {
         await navigator.share({ title: 'A daybook entry', text })
@@ -263,13 +266,17 @@ export function FullEntryOverlay({
               className="w-full rounded-xl border border-[var(--line)] p-3.5 text-[15px] outline-none focus:border-[var(--accent)]"
               style={{ fontFamily: 'var(--font-serif)', fontWeight: 300 }}
             />
-            <textarea
-              value={draftText}
-              onChange={(e) => setDraftText(e.target.value)}
-              rows={8}
-              className="w-full resize-none rounded-xl border border-[var(--line)] p-3.5 text-[15px] leading-relaxed outline-none focus:border-[var(--accent)]"
-              style={{ fontFamily: 'var(--font-serif)', fontWeight: 300 }}
-            />
+            <div>
+              <RichTextToolbar textareaRef={draftTextRef} value={draftText} onChange={setDraftText} />
+              <textarea
+                ref={draftTextRef}
+                value={draftText}
+                onChange={(e) => setDraftText(e.target.value)}
+                rows={8}
+                className="w-full resize-none rounded-xl border border-[var(--line)] p-3.5 text-[15px] leading-relaxed outline-none focus:border-[var(--accent)]"
+                style={{ fontFamily: 'var(--font-serif)', fontWeight: 300 }}
+              />
+            </div>
             <div className="flex justify-end gap-2">
               <button onClick={() => setEditing(false)} className="rounded-full px-4 py-2 text-[13px] text-[var(--ink-soft)]">
                 Cancel
@@ -280,12 +287,11 @@ export function FullEntryOverlay({
             </div>
           </div>
         ) : (
-          <p
-            className="mt-6 whitespace-pre-line text-[18px] leading-relaxed text-[var(--ink)]"
+          <RichText
+            text={displayEntry.fullText ?? displayEntry.summary}
+            className="mt-6 text-[18px] leading-relaxed text-[var(--ink)]"
             style={{ fontFamily: 'var(--font-serif)', fontWeight: 300 }}
-          >
-            {displayEntry.fullText ?? displayEntry.summary}
-          </p>
+          />
         )}
 
         <CommentThread entryId={displayEntry.id} />

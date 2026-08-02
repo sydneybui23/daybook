@@ -7,6 +7,7 @@ import { Avatar } from '../lib/avatars'
 import { paletteColorForSeed } from '../lib/palette'
 import { FullEntryOverlay } from './FullEntryOverlay'
 import { ReportButton } from './ReportButton'
+import { RichText } from '../lib/richText'
 import type { PostEntry } from './PostCard'
 import type { Circle, CircleEntry } from '../lib/types'
 
@@ -210,7 +211,13 @@ export function CircleChat({ circle }: { circle: Circle }) {
               )}
               <p className={`text-[11px] ${author.isMe ? 'text-white/60' : 'text-[var(--ink-soft)]'}`}>{timeLabel(e.date)}</p>
             </div>
-            <button onClick={() => openFull(e)} className="block w-full text-left">
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={() => openFull(e)}
+              onKeyDown={(ev) => ev.key === 'Enter' && openFull(e)}
+              className="block w-full cursor-pointer text-left"
+            >
               {e.photo ? (
                 <img src={e.photo} alt="" className="mb-2.5 aspect-[4/3] w-full rounded-xl object-cover" />
               ) : (
@@ -219,13 +226,12 @@ export function CircleChat({ circle }: { circle: Circle }) {
                   style={{ background: paletteColorForSeed(e.id) }}
                 />
               )}
-              <p
+              <RichText
+                text={e.fullText ?? e.summary}
                 className={`text-[14.5px] leading-relaxed ${author.isMe ? 'text-white' : 'text-[var(--ink)]'}`}
                 style={{ fontFamily: 'var(--font-serif)', fontWeight: 300 }}
-              >
-                {e.fullText ?? e.summary}
-              </p>
-            </button>
+              />
+            </div>
 
             <div
               className={`mt-2.5 flex items-center gap-4 border-t pt-2.5 ${
