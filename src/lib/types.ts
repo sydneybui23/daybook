@@ -40,6 +40,7 @@ export interface Entry {
   sharedCircleIds?: string[]
   public?: boolean
   comments?: Comment[]
+  deletedAt?: number // set when soft-deleted; entry stays in Firestore until restored or purged from Recently Deleted
   // denormalized author info so public/circle feeds can render without a join
   authorUid?: string
   authorName?: string

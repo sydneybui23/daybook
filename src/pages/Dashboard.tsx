@@ -63,7 +63,9 @@ function TodayCTA({
   const [summary, setSummary] = useState('')
   const [photo, setPhoto] = useState<string | undefined>(undefined)
   const [expand, setExpand] = useState<EntryMode | null>(null)
-  const already = entries.some((e) => e.date === todayStr())
+  const [addingAnother, setAddingAnother] = useState(false)
+  const todaysEntries = entries.filter((e) => e.date === todayStr())
+  const already = todaysEntries.length > 0
 
   const onFile = async (file: File) => {
     try {
@@ -91,24 +93,44 @@ function TodayCTA({
   }
 
   if (already) {
-    const todays = entries.find((e) => e.date === todayStr())!
+    const todays = todaysEntries[0]
     return (
-      <div className="flex w-full items-center gap-4 rounded-2xl border border-[var(--line)] bg-[var(--line-soft)]/40 p-5">
-        <button onClick={() => onOpen(todays)} className="flex flex-1 items-center gap-4 text-left">
-          <EntryPhoto photo={todays.photo} iconId={todays.iconId} seed={todays.id} size={52} radius="14px" />
-          <div>
-            <p className="text-[12px] uppercase tracking-[0.06em] text-[var(--ink-soft)]">Today, captured</p>
-            <p className="mt-1 text-[14.5px] text-[var(--ink)]" style={{ fontFamily: 'var(--font-serif)', fontWeight: 300 }}>
-              {todays.summary}
-            </p>
-          </div>
-        </button>
+      <div className="flex flex-col gap-3">
+        <div className="flex w-full items-center gap-4 rounded-2xl border border-[var(--line)] bg-[var(--line-soft)]/40 p-5">
+          <button onClick={() => onOpen(todays)} className="flex flex-1 items-center gap-4 text-left">
+            <EntryPhoto photo={todays.photo} iconId={todays.iconId} seed={todays.id} size={52} radius="14px" />
+            <div>
+              <p className="text-[12px] uppercase tracking-[0.06em] text-[var(--ink-soft)]">
+                Today, captured{todaysEntries.length > 1 ? ` · ${todaysEntries.length} entries` : ''}
+              </p>
+              <p className="mt-1 text-[14.5px] text-[var(--ink)]" style={{ fontFamily: 'var(--font-serif)', fontWeight: 300 }}>
+                {todays.summary}
+              </p>
+            </div>
+          </button>
+          <button
+            onClick={() => onEdit(todays)}
+            className="shrink-0 rounded-full border border-[var(--line)] bg-white px-4 py-2 text-[13px] text-[var(--ink)] hover:bg-[var(--line-soft)]"
+          >
+            Edit
+          </button>
+        </div>
         <button
-          onClick={() => onEdit(todays)}
-          className="shrink-0 rounded-full border border-[var(--line)] bg-white px-4 py-2 text-[13px] text-[var(--ink)] hover:bg-[var(--line-soft)]"
+          onClick={() => setAddingAnother(true)}
+          className="self-start text-[12.5px] text-[var(--ink-soft)] hover:text-[var(--ink)]"
         >
-          Edit
+          + Add another entry for today
         </button>
+        {addingAnother && (
+          <NewEntryModal
+            initialDate={todayStr()}
+            onClose={() => setAddingAnother(false)}
+            onSaved={() => {
+              setAddingAnother(false)
+              onAdded()
+            }}
+          />
+        )}
       </div>
     )
   }

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Search } from 'lucide-react'
+import { ChevronDown, ChevronUp, RotateCcw, Search, Trash2 } from 'lucide-react'
 import { useStore } from '../lib/store'
 import { EntryPhoto } from '../components/EntryPhoto'
 import { FullEntryOverlay } from '../components/FullEntryOverlay'
@@ -18,6 +18,78 @@ const FILTERS: { id: Filter; label: string }[] = [
   { id: 'free', label: 'Free writes' },
   { id: 'guided', label: 'Templates' },
 ]
+
+function PurgeForeverButton({ onPurge }: { onPurge: () => void }) {
+  const [confirming, setConfirming] = useState(false)
+  return (
+    <button
+      onClick={() => {
+        if (!confirming) {
+          setConfirming(true)
+          return
+        }
+        onPurge()
+      }}
+      onBlur={() => setConfirming(false)}
+      className="flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12px] transition-colors"
+      style={
+        confirming
+          ? { borderColor: '#bb4e3f', color: '#bb4e3f' }
+          : { borderColor: 'var(--line)', color: 'var(--ink-soft)' }
+      }
+    >
+      <Trash2 size={12} /> {confirming ? 'Confirm delete forever?' : 'Delete forever'}
+    </button>
+  )
+}
+
+function RecentlyDeletedSection() {
+  const { deletedEntries, restoreEntry, permanentlyDeleteEntry } = useStore()
+  const [open, setOpen] = useState(false)
+  if (deletedEntries.length === 0) return null
+
+  return (
+    <div className="mt-10 border-t border-[var(--line)] pt-6">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="flex items-center gap-1.5 text-[13px] text-[var(--ink-soft)] hover:text-[var(--ink)]"
+      >
+        {open ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+        Recently deleted ({deletedEntries.length})
+      </button>
+      {open && (
+        <div className="mt-4 flex flex-col gap-2">
+          <p className="text-[12px] text-[var(--ink-soft)]">
+            Deleted entries stay here for 30 days before they're removed for good.
+          </p>
+          {deletedEntries.map((e) => (
+            <div
+              key={e.id}
+              className="flex items-center gap-4 rounded-2xl border border-[var(--line)] p-4 opacity-70"
+            >
+              <EntryPhoto photo={e.photo} iconId={e.iconId} seed={e.id} size={44} radius="14px" />
+              <div className="min-w-0 flex-1">
+                <p className="text-[11px] uppercase tracking-[0.06em] text-[var(--ink-soft)]">{fmt(e.date)}</p>
+                <p className="mt-1 line-clamp-2 text-[13px] leading-snug text-[var(--ink)]" style={{ fontFamily: 'var(--font-serif)', fontWeight: 300 }}>
+                  {e.summary}
+                </p>
+              </div>
+              <div className="flex shrink-0 flex-col items-end gap-1.5 sm:flex-row sm:items-center">
+                <button
+                  onClick={() => restoreEntry(e.id)}
+                  className="flex items-center gap-1.5 rounded-full border border-[var(--line)] px-3 py-1.5 text-[12px] text-[var(--ink)] hover:bg-[var(--line-soft)]"
+                >
+                  <RotateCcw size={12} /> Restore
+                </button>
+                <PurgeForeverButton onPurge={() => permanentlyDeleteEntry(e.id)} />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
 
 export function Archive() {
   const { entries, profile, templateQuestions } = useStore()
@@ -101,6 +173,8 @@ export function Archive() {
         ))}
         {filtered.length === 0 && <p className="text-[13.5px] text-[var(--ink-soft)]">No entries match "{query}".</p>}
       </div>
+
+      <RecentlyDeletedSection />
 
       {openEntry && <FullEntryOverlay entry={openEntry} onBack={() => setOpenEntry(null)} />}
     </div>

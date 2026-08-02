@@ -10,6 +10,7 @@ import {
   where,
   collectionGroup,
   arrayUnion,
+  deleteField,
   type FieldValue,
   type Unsubscribe,
 } from 'firebase/firestore'
@@ -22,6 +23,9 @@ import { db } from './firebase'
 
 type EntryPatch = { [K in keyof Entry]?: Entry[K] | FieldValue }
 type TravelPatch = { [K in keyof TravelEntry]?: TravelEntry[K] | FieldValue }
+
+// how long a soft-deleted entry stays recoverable in Recently Deleted before being purged for good
+const TRASH_RETENTION_MS = 30 * 24 * 60 * 60 * 1000
 
 function reportFailure(action: string) {
   return (err: unknown) => {
@@ -81,9 +85,12 @@ export interface ExplorePost extends Entry {
 interface StoreValue {
   ready: boolean
   entries: Entry[]
+  deletedEntries: Entry[]
   addEntry: (e: Entry) => void
   updateEntry: (id: string, patch: EntryPatch) => void
   deleteEntry: (id: string) => void
+  restoreEntry: (id: string) => void
+  permanentlyDeleteEntry: (id: string) => void
   circles: Circle[]
   addCircle: (c: Omit<Circle, 'memberUids' | 'members' | 'entries'>) => void
   joinCircle: (circleId: string) => Promise<void>
@@ -134,7 +141,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [templateQuestions, setTemplateQuestionsState] = useState<TemplateQuestion[]>(TEMPLATE_QUESTIONS)
   const [habits, setHabitsState] = useState<HabitItem[]>(DEFAULT_HABITS)
   const [readIds, setReadIds] = useState<Set<string>>(new Set())
-  const [entries, setEntries] = useState<Entry[]>([])
+  const [allEntries, setAllEntries] = useState<Entry[]>([])
+  const entries = useMemo(() => allEntries.filter((e) => !e.deletedAt), [allEntries])
+  const deletedEntries = useMemo(
+    () => allEntries.filter((e) => e.deletedAt).sort((a, b) => (b.deletedAt ?? 0) - (a.deletedAt ?? 0)),
+    [allEntries],
+  )
   const [circleBases, setCircleBases] = useState<Omit<Circle, 'entries' | 'generalComments'>[]>([])
   const [circleEntries, setCircleEntries] = useState<Record<string, CircleEntry[]>>({})
   const [circleChats, setCircleChats] = useState<Record<string, Comment[]>>({})
@@ -197,17 +209,26 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     })
   }, [uid])
 
-  // personal entries
+  // personal entries (includes soft-deleted ones, filtered into entries/deletedEntries above)
   useEffect(() => {
     if (!uid || !db) {
-      setEntries([])
+      setAllEntries([])
       return
     }
-    const ref = collection(db, 'users', uid, 'entries')
+    const database = db
+    const ref = collection(database, 'users', uid, 'entries')
     return onSnapshot(ref, (snap) => {
       const next = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Entry)
       next.sort((a, b) => (a.date < b.date ? 1 : -1))
-      setEntries(next)
+      setAllEntries(next)
+
+      // quietly purge anything that's sat in Recently Deleted past the retention window
+      const cutoff = Date.now() - TRASH_RETENTION_MS
+      for (const e of next) {
+        if (e.deletedAt && e.deletedAt < cutoff) {
+          deleteDoc(doc(database, 'users', uid, 'entries', e.id)).catch(() => {})
+        }
+      }
     })
   }, [uid])
 
@@ -285,10 +306,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     return onSnapshot(
       q,
       (snap) => {
-        const next = snap.docs.map((d) => {
-          const ownerUid = d.ref.parent.parent?.id ?? ''
-          return { id: d.id, ownerUid, ...d.data() } as ExplorePost
-        })
+        const next = snap.docs
+          .map((d) => {
+            const ownerUid = d.ref.parent.parent?.id ?? ''
+            return { id: d.id, ownerUid, ...d.data() } as ExplorePost
+          })
+          // soft-deleted entries stay in Firestore for Recently Deleted, but shouldn't surface publicly
+          .filter((p) => !p.deletedAt)
         next.sort((a, b) => (a.date < b.date ? 1 : -1))
         setExplorePublicPosts(next)
       },
@@ -353,10 +377,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const addEntry = (e: Entry) => {
     if (!uid || !db) return
-    const database = db
-    const sameDate = entries.filter((p) => p.date === e.date && p.id !== e.id)
-    sameDate.forEach((p) => deleteDoc(doc(database, 'users', uid, 'entries', p.id)).catch(reportFailure('replace today\'s earlier entry')))
-    setDoc(doc(database, 'users', uid, 'entries', e.id), {
+    setDoc(doc(db, 'users', uid, 'entries', e.id), {
       ...e,
       authorUid: uid,
       authorName: profile.name,
@@ -370,9 +391,20 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     updateDoc(doc(db, 'users', uid, 'entries', id), patch).catch(reportFailure('save your changes'))
   }
 
+  // soft delete: moves the entry to Recently Deleted instead of erasing it outright
   const deleteEntry = (id: string) => {
     if (!uid || !db) return
-    deleteDoc(doc(db, 'users', uid, 'entries', id)).catch(reportFailure('delete that entry'))
+    updateDoc(doc(db, 'users', uid, 'entries', id), { deletedAt: Date.now() }).catch(reportFailure('delete that entry'))
+  }
+
+  const restoreEntry = (id: string) => {
+    if (!uid || !db) return
+    updateDoc(doc(db, 'users', uid, 'entries', id), { deletedAt: deleteField() }).catch(reportFailure('restore that entry'))
+  }
+
+  const permanentlyDeleteEntry = (id: string) => {
+    if (!uid || !db) return
+    deleteDoc(doc(db, 'users', uid, 'entries', id)).catch(reportFailure('permanently delete that entry'))
   }
 
   const addCircle = (c: Omit<Circle, 'memberUids' | 'members' | 'entries'>) => {
@@ -468,7 +500,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     | { kind: 'chat'; circleId: string }
     | { kind: 'public'; ownerUid: string; entry: ExplorePost }
     | null => {
-    const personal = entries.find((e) => e.id === targetId)
+    const personal = allEntries.find((e) => e.id === targetId)
     if (personal) return { kind: 'personal', entry: personal }
     for (const c of circles) {
       if (c.id === targetId) return { kind: 'chat', circleId: c.id }
@@ -532,7 +564,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }
 
   const patchCommentEverywhere = (commentId: string, patch: Partial<Comment>): { targetId: string; comment: Comment } | null => {
-    for (const e of entries) {
+    for (const e of allEntries) {
       if (e.comments?.some((c) => c.id === commentId)) {
         const next = e.comments.map((c) => (c.id === commentId ? { ...c, ...patch } : c))
         writeComments(e.id, next)
@@ -569,7 +601,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const pendingModerationItems = () => {
     const items: { entryId: string; comment: Comment }[] = []
-    for (const e of entries) (e.comments ?? []).forEach((c) => c.moderationStatus === 'pending' && items.push({ entryId: e.id, comment: c }))
+    for (const e of allEntries) (e.comments ?? []).forEach((c) => c.moderationStatus === 'pending' && items.push({ entryId: e.id, comment: c }))
     for (const c of circles) {
       c.entries.forEach((e) => (e.comments ?? []).forEach((cm) => cm.moderationStatus === 'pending' && items.push({ entryId: e.id, comment: cm })))
       ;(circleChats[c.id] ?? []).forEach((m) => m.moderationStatus === 'pending' && items.push({ entryId: c.id, comment: m }))
@@ -648,9 +680,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     () => ({
       ready,
       entries,
+      deletedEntries,
       addEntry,
       updateEntry,
       deleteEntry,
+      restoreEntry,
+      permanentlyDeleteEntry,
       circles,
       addCircle,
       joinCircle,
@@ -692,6 +727,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     [
       ready,
       entries,
+      deletedEntries,
       circles,
       profile,
       readIds,
