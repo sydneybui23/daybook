@@ -141,6 +141,16 @@ export function FullEntryOverlay({
     setDraftPhotos((prev) => prev.filter((_, i) => i !== index))
   }
 
+  const onMovePhoto = (index: number, direction: -1 | 1) => {
+    setDraftPhotos((prev) => {
+      const target = index + direction
+      if (target < 0 || target >= prev.length) return prev
+      const next = [...prev]
+      ;[next[index], next[target]] = [next[target], next[index]]
+      return next
+    })
+  }
+
   const save = () => {
     // a manual full-text edit turns a guided-template entry into free-form text —
     // otherwise the old per-question answers would keep overriding it on every render
@@ -214,6 +224,9 @@ export function FullEntryOverlay({
             {draftPhotos.map((p, i) => (
               <div key={i} className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl">
                 <img src={p} alt="" className="h-full w-full object-cover" />
+                {i === 0 && draftPhotos.length > 1 && (
+                  <span className="absolute left-1 top-1 rounded-full bg-black/60 px-1.5 py-0.5 text-[9px] text-white">Cover</span>
+                )}
                 <button
                   onClick={() => onRemovePhoto(i)}
                   aria-label="Remove photo"
@@ -221,6 +234,26 @@ export function FullEntryOverlay({
                 >
                   <X size={12} />
                 </button>
+                {draftPhotos.length > 1 && (
+                  <div className="absolute inset-x-0 bottom-0 flex items-center justify-between bg-black/45 px-0.5">
+                    <button
+                      onClick={() => onMovePhoto(i, -1)}
+                      disabled={i === 0}
+                      aria-label="Move photo earlier"
+                      className="flex h-5 w-5 items-center justify-center text-white disabled:opacity-30"
+                    >
+                      <ChevronLeft size={14} />
+                    </button>
+                    <button
+                      onClick={() => onMovePhoto(i, 1)}
+                      disabled={i === draftPhotos.length - 1}
+                      aria-label="Move photo later"
+                      className="flex h-5 w-5 items-center justify-center text-white disabled:opacity-30"
+                    >
+                      <ChevronRight size={14} />
+                    </button>
+                  </div>
+                )}
               </div>
             ))}
             {draftPhotos.length < MAX_PHOTOS && (
