@@ -11,6 +11,7 @@
     "cap:sync": "npm run build && npx cap sync"
   },
   "dependencies": {
+    "@capacitor-firebase/authentication": "^8.3.0",
     "@capacitor/core": "^8.5.0",
     "@capacitor/ios": "^8.5.0",
     "clsx": "^2.1.1",
