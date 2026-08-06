@@ -16,6 +16,10 @@ function fullDate(dateStr: string) {
   return new Date(dateStr + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })
 }
 
+function todayStr() {
+  return new Date().toISOString().slice(0, 10)
+}
+
 function PhotoCarousel({ photos }: { photos: string[] }) {
   const [index, setIndex] = useState(0)
   const clamped = Math.min(index, photos.length - 1)
@@ -80,6 +84,7 @@ export function FullEntryOverlay({
   const [draftSummary, setDraftSummary] = useState(entry.summary)
   const [draftText, setDraftText] = useState(entry.fullText ?? entry.summary)
   const [draftPhotos, setDraftPhotos] = useState<string[]>(entry.photos ?? (entry.photo ? [entry.photo] : []))
+  const [draftDate, setDraftDate] = useState(entry.date)
   const draftTextRef = useRef<HTMLTextAreaElement>(null)
 
   const canEdit = displayEntry.name === profile.name && entries.some((e) => e.id === displayEntry.id)
@@ -88,6 +93,7 @@ export function FullEntryOverlay({
     setDraftSummary(displayEntry.summary)
     setDraftText(displayEntry.fullText ?? displayEntry.summary)
     setDraftPhotos(displayEntry.photos ?? (displayEntry.photo ? [displayEntry.photo] : []))
+    setDraftDate(displayEntry.date)
     setEditing(true)
     setMenuOpen(false)
   }
@@ -155,6 +161,7 @@ export function FullEntryOverlay({
     // a manual full-text edit turns a guided-template entry into free-form text —
     // otherwise the old per-question answers would keep overriding it on every render
     updateEntry(displayEntry.id, {
+      date: draftDate,
       summary: draftSummary.trim() || displayEntry.summary,
       freeText: draftText.trim(),
       mode: 'free',
@@ -164,6 +171,7 @@ export function FullEntryOverlay({
     })
     setDisplayEntry((prev) => ({
       ...prev,
+      date: draftDate,
       summary: draftSummary.trim() || prev.summary,
       fullText: draftText.trim(),
       photo: draftPhotos[0],
@@ -286,7 +294,17 @@ export function FullEntryOverlay({
           <Avatar name={displayEntry.name} color={displayEntry.color} size={38} />
           <div>
             <p className="text-[14.5px] font-medium text-[var(--ink)]">{displayEntry.name}</p>
-            <p className="text-[12px] text-[var(--ink-soft)]">{fullDate(displayEntry.date)}</p>
+            {editing ? (
+              <input
+                type="date"
+                value={draftDate}
+                max={todayStr()}
+                onChange={(e) => setDraftDate(e.target.value)}
+                className="mt-0.5 rounded-md border border-[var(--line)] bg-transparent px-1.5 py-0.5 text-[12px] text-[var(--ink)] outline-none focus:border-[var(--accent)]"
+              />
+            ) : (
+              <p className="text-[12px] text-[var(--ink-soft)]">{fullDate(displayEntry.date)}</p>
+            )}
           </div>
         </div>
 
